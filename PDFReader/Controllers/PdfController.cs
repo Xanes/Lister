@@ -1,5 +1,5 @@
-﻿using DietMergerLib;
-using Microsoft.AspNetCore.Http;
+﻿using Infrastructure.Settings;
+using Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PDFReader.Controllers
@@ -14,8 +14,10 @@ namespace PDFReader.Controllers
         [DisableRequestSizeLimit]
         public IActionResult ReadPdf(IFormFile file)
         {
-            PDFProductsFinder finder = new PDFProductsFinder();
+            PDFProductsFinder finder = new PDFProductsFinder(new AvoDietSettings());
             return Ok(finder.FindProducts(file.OpenReadStream()));
+
+
         }
     }
 }

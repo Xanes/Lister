@@ -1,4 +1,4 @@
-﻿namespace DietMergerLib.Models
+﻿namespace Infrastructure.Models
 {
     public record Product
     {

@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DietMergerLib.Models
+﻿namespace Infrastructure.Models
 {
-    public class ProductCategoryGroup
+    public record ProductCategoryGroup
     {
         public ProductCategoryGroup(string name, List<Product> products)
         {

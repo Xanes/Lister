@@ -1,11 +1,11 @@
-﻿using DietMergerLib.Models;
+﻿using Infrastructure.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DietMergerLib
+namespace Infrastructure
 {
     public class ShoppingListMerger
     {
@@ -21,7 +21,7 @@ namespace DietMergerLib
                 var mergedCategory = new ProductCategoryGroup(category.Name, new List<Product>());
                 var categoryB = ListB.FirstOrDefault(x => x.Name == category.Name);
                 var productsB = categoryB?.Products.ToList();
-                
+
                 foreach (var product in category.Products)
                 {
                     var mergedProduct = new Product()
@@ -46,9 +46,9 @@ namespace DietMergerLib
                 if (productsB?.Any() ?? false && categoryB != null)
                 {
                     mergedCategory.Products.AddRange(productsB);
-                    
+
                 }
-                if(categoryB != null)
+                if (categoryB != null)
                 {
                     ListB.Remove(categoryB);
                 }
