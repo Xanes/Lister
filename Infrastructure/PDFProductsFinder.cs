@@ -1,28 +1,21 @@
-﻿using DietMergerLib.Models;
+﻿using Infrastructure.Models;
+using Infrastructure.Settings;
+using Syncfusion.DocIO.DLS;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Parsing;
 using System.Text.RegularExpressions;
 
-namespace DietMergerLib
+namespace Infrastructure
 {
     public class PDFProductsFinder
     {
-        private string[] ignoredWords = { "Lista zakupów",
-                                          "PRODUKTILOŚĆWAGAPRODUKTILOŚĆWAGA"
-                                        };
+        private readonly ISettings _settings;
 
-        private string[] categories = { "Mięso i produkty mięsne",
-                                        "Mrożonki",
-                                        "Nabiał i jaja",
-                                        "Orzechy i nasiona",
-                                        "Owoce",
-                                        "Przetwory",
-                                        "Przyprawy i zioła",
-                                        "Słodycze i przekąski",
-                                        "Warzywa",
-                                        "Zbożowe",
-                                        "Inne",
-                                        "Tłuszcze"};
+        public PDFProductsFinder(ISettings settings)
+        {
+            _settings = settings;
+        }
+
 
         private string productNamePattern = @"[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]+[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*";
         private string quantityPattern = @"[0-9]+(\.[0-9]+)? *x";
@@ -42,14 +35,20 @@ namespace DietMergerLib
                 {
                     loadedDocument.Pages[i].ExtractText(out TextLineCollection textlineCollection);
                     List<TextLine> line = new List<TextLine>();
+                    var textlines = textlineCollection.TextLine.Select(t =>
+                    {
+                        t.Text = t.Text.Trim();
+                        return t;
+
+                    }).ToList();
                     foreach (var textline in textlineCollection.TextLine)
                     {
-                        if (ignoredWords.Contains(textline.Text))
+                        if (_settings.IgnoreWords.Contains(textline.Text))
                         {
                             continue;
                         }
 
-                        if (categories.Contains(textline.Text))
+                        if (_settings.Categories.Contains(textline.Text))
                         {
                             currentcategory = textline.Text;
                             gruppedLinesWithCategory[currentcategory] = new List<List<TextLine>>();
