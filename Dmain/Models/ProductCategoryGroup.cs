@@ -1,14 +1,9 @@
-﻿namespace Infrastructure.Models
+﻿namespace Domain.Models
 {
     public record ProductCategoryGroup
     {
-        public ProductCategoryGroup(string name, List<Product> products)
-        {
-            Name = name;
-            Products = products;
-        }
-
-        public string Name { get; set; }
-        public List<Product> Products { get; set; }
+        public Category? Category { get; set; }
+        public int Id { get; set; }
+        public List<Product> Products { get; set; } = new List<Product>();
     }
 }

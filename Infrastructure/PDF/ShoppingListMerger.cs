@@ -1,11 +1,11 @@
-﻿using Infrastructure.Models;
+﻿using Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Infrastructure
+namespace Infrastructure.PDF
 {
     public class ShoppingListMerger
     {
@@ -18,11 +18,18 @@ namespace Infrastructure
 
             foreach (var category in shoppingListA)
             {
-                var mergedCategory = new ProductCategoryGroup(category.Name, new List<Product>());
-                var categoryB = ListB.FirstOrDefault(x => x.Name == category.Name);
-                var productsB = categoryB?.Products.ToList();
+                var mergedCategory = new ProductCategoryGroup()
+                {
+                    Category = new Category 
+                    {
+                        Name = category.Category?.Name
+                    }, 
+                    Products = new List<Product>()
+                };
+                var categoryB = ListB.FirstOrDefault(x => x.Category?.Name == category.Category?.Name);
+                var productsB = categoryB?.Products?.ToList();
 
-                foreach (var product in category.Products)
+                foreach (var product in category.Products ?? new List<Product>())
                 {
                     var mergedProduct = new Product()
                     {
