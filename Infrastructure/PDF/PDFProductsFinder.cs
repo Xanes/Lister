@@ -1,11 +1,11 @@
-﻿using Infrastructure.Models;
+﻿using Domain.Models;
 using Infrastructure.Settings;
 using Syncfusion.DocIO.DLS;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Parsing;
 using System.Text.RegularExpressions;
 
-namespace Infrastructure
+namespace Infrastructure.PDF
 {
     public class PDFProductsFinder
     {
@@ -71,7 +71,12 @@ namespace Infrastructure
             List<ProductCategoryGroup> productCategoryGroups = new List<ProductCategoryGroup>();
             foreach (var item in gruppedLinesWithCategory)
             {
-                ProductCategoryGroup productCategoryGroup = new ProductCategoryGroup(item.Key, new List<Product>());
+                ProductCategoryGroup productCategoryGroup = new ProductCategoryGroup()
+                {
+                    Category = new Category() { Name = item.Key },
+                    Products = new List<Product>()
+                };
+
                 foreach (var item2 in item.Value)
                 {
                     string lineText = item2.Select(x => x.Text).Aggregate((x, y) => x + y);
