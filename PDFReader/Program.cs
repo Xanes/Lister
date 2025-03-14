@@ -18,7 +18,7 @@ builder.Services.AddDbContext<ListerDbContext>(options =>
 );
 
 builder.Services.AddSingleton<ISettings, AvoDietSettings>();
-builder.Services.AddTransient<IRepository<ShoppingList>, ShoppingListRepository>();
+builder.Services.AddTransient<IRepository<ShoppingList, ProductChange>, ShoppingListRepository>();
 
 var app = builder.Build();
 app.MapGet("/", () => StatusCodes.Status200OK);

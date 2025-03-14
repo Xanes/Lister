@@ -16,11 +16,9 @@ namespace Infrastructure.PDF
             _settings = settings;
         }
 
-
-        private string productNamePattern = @"[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]+[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*";
-        private string quantityPattern = @"[0-9]+(\.[0-9]+)? *x";
-        private string weightPattern = @"[0-9]+(\.[0-9]+)? *g";
-        private string quantityUnitPattern = @"x [a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]+[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]*[\s]*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]";
+        private string quantityPattern = @"[0-9]+([.,][0-9]+)? *x";
+        private string weightPattern = @"[0-9]+(?: [0-9]+)?(\.[0-9]+)? *g";
+        private string quantityUnitPattern = @"x\s*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]+(?:\s*[a-zA-ZąĄćĆęĘłŁńŃóÓśŚźŹżŻ]+)*";
 
         public List<ProductCategoryGroup> FindProducts(Stream fsSource)
         {
@@ -79,18 +77,21 @@ namespace Infrastructure.PDF
 
                 foreach (var item2 in item.Value)
                 {
-                    string lineText = item2.Select(x => x.Text).Aggregate((x, y) => x + y);
-                    Match productNameMatch = Regex.Match(lineText, productNamePattern);
+                    string lineText = item2.Select(x => x.Text).Aggregate((x, y) => x + " "+ y);
+                    lineText = lineText.Replace(",", "");
+                    lineText = Regex.Replace(lineText, @"\u00A0", " ");
+                    var name = ExtractProductName(lineText);
                     Match quantityMatch = Regex.Match(lineText, quantityPattern);
                     Match weightMatch = Regex.Match(lineText, weightPattern);
                     Match quantityUnitMatch = Regex.Match(lineText, quantityUnitPattern);
+
                     try
                     {
                         Product product = new Product()
                         {
-                            Name = productNameMatch.Success ? productNameMatch.Value : null,
+                            Name = name,
                             Quantity = quantityMatch.Success ? double.Parse(quantityMatch.Value.TrimEnd('x').Trim().Replace(".", ",")) : null,
-                            QuantityUnit = quantityUnitMatch.Success ? quantityUnitMatch.Value.Substring(2) : null,
+                            QuantityUnit = quantityUnitMatch.Success ? quantityUnitMatch.Value.Substring(1).Trim() : null,
                             Weight = weightMatch.Success ? double.Parse(weightMatch.Value.TrimEnd('g').Trim().Replace(".", ",")) : null,
                             WeightUnit = "g"
                         };
@@ -105,6 +106,29 @@ namespace Infrastructure.PDF
             }
 
             return productCategoryGroups;
+        }
+
+        private static string ExtractProductName(string input)
+        {
+            
+            var matchX = Regex.Match(input, @"\d+\s*x\s*[A-Za-z]*", RegexOptions.IgnoreCase);
+            var matchG = Regex.Match(input, @"\d+\s*g\b", RegexOptions.IgnoreCase);
+
+            
+            if (matchX.Success)
+            {
+                return Regex.Replace(input.Substring(0, matchX.Index).Trim(), @"(?<=[a-zA-Z])\d+|\d+(?=[a-zA-Z])", "");
+            }
+            
+            else if (matchG.Success)
+            {
+                return Regex.Replace(input.Substring(0, matchG.Index).Trim(), @"(?<=[a-zA-Z])\d+|\d+(?=[a-zA-Z])", "");
+            }
+            
+            else
+            {
+                return input; 
+            }
         }
     }
 }

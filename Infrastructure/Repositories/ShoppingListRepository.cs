@@ -6,7 +6,7 @@ using System.Net.WebSockets;
 
 namespace Infrastructure.Repositories
 {
-    public class ShoppingListRepository : IRepository<ShoppingList>
+    public class ShoppingListRepository : IRepository<ShoppingList, ProductChange>
     {
         private readonly ListerDbContext _context;
 
@@ -35,7 +35,7 @@ namespace Infrastructure.Repositories
 
         public async Task<ShoppingList> GetAsync(int id)
         {
-            return await _context.ShoppingLists.Include(c => c.ProductCategories).ThenInclude(c => c.Products).FirstAsync(p => p.Id == id);
+            return await _context.ShoppingLists.Include(c => c.ProductCategories).ThenInclude(c => c.Products).Include(c => c.ProductCategories).ThenInclude(c => c.Category).FirstAsync(p => p.Id == id);
         }
 
         public async Task<IEnumerable<ShoppingList>> GetAllAsync()
@@ -49,6 +49,34 @@ namespace Infrastructure.Repositories
             entity.ProductCategories.SelectMany(p => p.Products).ToList().ForEach(p => _context.Remove(p));
             entity.ProductCategories.ForEach(c => _context.Remove(c));
             _context.Remove(entity);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAsync(List<ProductChange> productChanges)
+        {
+            foreach (var productChange in productChanges)
+            {
+                var product = _context.Products.First(p => p.Id == productChange.Id);
+                product.ChangedWeight = productChange.ChangedWeight;
+                product.ChangedQuantity = productChange.ChangedQuantity;
+                product.IsChecked = productChange.IsChecked ?? false;
+                _context.Update(product);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task ResetAsync(int shoppingListId)
+        {
+            ShoppingList list = await GetAsync(shoppingListId);
+            var products = list.ProductCategories.SelectMany(p => p.Products);
+            foreach (var product in products)
+            {
+                product.ChangedWeight = null;
+                product.ChangedQuantity = null;
+                product.IsChecked = false;
+            }
+            _context.UpdateRange(products);
             await _context.SaveChangesAsync();
         }
     }

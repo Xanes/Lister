@@ -11,8 +11,8 @@ namespace PDFReader.Controllers
     public class PdfController : ControllerBase
     {
         private readonly ISettings _settings;
-        private readonly IRepository<ShoppingList> _shoppingListRepository;
-        public PdfController(ISettings settings, IRepository<ShoppingList> shoppingListRepository) 
+        private readonly IRepository<ShoppingList, ProductChange> _shoppingListRepository;
+        public PdfController(ISettings settings, IRepository<ShoppingList, ProductChange> shoppingListRepository) 
         {
             _settings = settings;
             _shoppingListRepository= shoppingListRepository;
@@ -21,10 +21,20 @@ namespace PDFReader.Controllers
         [Route(nameof(ReadPdf))]
         [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         [DisableRequestSizeLimit]
-        public async Task<IActionResult> ReadPdf(string name, string description, IFormFile file)
+        public async Task<IActionResult> ReadPdf(string name, string description, List<IFormFile> fileList)
         {
             PDFProductsFinder finder = new PDFProductsFinder(_settings);
-            var content = finder.FindProducts(file.OpenReadStream());
+            var shoppingLists = fileList.Select(file => finder.FindProducts(file.OpenReadStream())).ToList();
+
+            ShoppingListMerger merger = new ShoppingListMerger();
+
+            var content = shoppingLists.First();
+
+            for(int i = 1; i < shoppingLists.Count(); i++) 
+            {
+                content = merger.MergeShoppingLists(content, shoppingLists[i]);
+            }
+
             ShoppingList list = new ShoppingList()
             {
                 ProductCategories = content,
@@ -57,6 +67,22 @@ namespace PDFReader.Controllers
         public async Task<IActionResult> DeleteList(int id)
         {
             await _shoppingListRepository.DeleteAsync(id);
+            return Ok();
+        }
+
+        [HttpPatch]
+        [Route(nameof(UpdateProducts))]
+        public async Task<IActionResult> UpdateProducts(List<ProductChange> productChanges)
+        {
+            await _shoppingListRepository.UpdateAsync(productChanges);
+            return Ok();
+        }
+
+        [HttpPatch]
+        [Route(nameof(ResetList))]
+        public async Task<IActionResult> ResetList(int shoppingListId)
+        {
+            await _shoppingListRepository.ResetAsync(shoppingListId);
             return Ok();
         }
     }

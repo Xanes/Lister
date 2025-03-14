@@ -25,6 +25,9 @@ namespace Infrastructure.Settings
                                         "Mięso",
                                         "Pozostałe",
                                         "Owoce i warzywa",
+                                        "Orzechy i nasiona",
+                                        "Słodycze",
+                                        "Sumplementy"
                                         };
     }
 }
