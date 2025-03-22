@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  pdfapp:
+    build:
+      context: .
+      dockerfile: PDFReader/Dockerfile
+    ports:
+      - "4535:443"
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=mysql;Database=lister;User=root;Password=qwerty;
+      - ASPNETCORE_URLS=https://+:443
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=CertPassword123
+      # Use development certificate
+      - ASPNETCORE_ENVIRONMENT=Development
+      # Tell Kestrel to use the developer certificate
+      - ASPNETCORE_HTTPS_PORT=443
+      - ASPNETCORE_HTTPS_DEVELOPMENT_CERTIFICATE=true
+    volumes:
+      - https-data:/https:rw
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - pdf-network
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3308:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=qwerty
+      - MYSQL_DATABASE=lister
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./PDFReader/db-migration.sql:/docker-entrypoint-initdb.d/db-migration.sql # Mount the SQL file
+    networks:
+      - pdf-network
+    healthcheck: # Add healthcheck to ensure MySQL is ready
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-pqwerty",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+networks:
+  pdf-network:
+
+volumes:
+  mysql-data:
+  https-data:

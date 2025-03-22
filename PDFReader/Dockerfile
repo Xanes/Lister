@@ -3,8 +3,21 @@
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
 WORKDIR /app
-EXPOSE 80
 EXPOSE 443
+
+# Install OpenSSL to generate self-signed cert
+RUN apt-get update && apt-get install -y openssl
+
+# Generate a self-signed certificate
+RUN mkdir -p /https && \
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+    -keyout /https/aspnetapp.key -out /https/aspnetapp.crt \
+    -subj "/CN=localhost"
+
+# Create PFX file from cert and key
+RUN openssl pkcs12 -export -out /https/aspnetapp.pfx \
+    -inkey /https/aspnetapp.key -in /https/aspnetapp.crt \
+    -passout pass:CertPassword123
 
 
 # This stage is used to build the service project

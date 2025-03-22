@@ -1,6 +1,7 @@
 ﻿using Domain.Models;
 using Infrastructure.Database.Configurations;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Database
 {
