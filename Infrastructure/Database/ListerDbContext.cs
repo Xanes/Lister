@@ -15,9 +15,12 @@ namespace Infrastructure.Database
         public DbSet<ProductCategoryGroup> ProductCategoryGroups { get; set; }
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<TrustedDevice> TrustedDevices { get; set; }
+        public DbSet<PasswordConfig> PasswordConfigs { get; set; }
 
-        public void OnModelCreation(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfiguration(new CategoryConfiguration());
         }
     }
