@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Infrastructure.PDF;
 using Domain.Models;
 using Domain.Interfaces;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace PDFReader.Controllers
 {
@@ -12,11 +14,18 @@ namespace PDFReader.Controllers
     {
         private readonly ISettings _settings;
         private readonly IRepository<ShoppingList, ProductChange> _shoppingListRepository;
-        public PdfController(ISettings settings, IRepository<ShoppingList, ProductChange> shoppingListRepository) 
+        private readonly IReadOnlyRepository<ProductsDescriptionInfo> _productsDescriptionInfoRepository;
+
+        public PdfController(
+            ISettings settings, 
+            IRepository<ShoppingList, ProductChange> shoppingListRepository,
+            IReadOnlyRepository<ProductsDescriptionInfo> productsDescriptionInfoRepository) 
         {
             _settings = settings;
-            _shoppingListRepository= shoppingListRepository;
+            _shoppingListRepository = shoppingListRepository;
+            _productsDescriptionInfoRepository = productsDescriptionInfoRepository;
         }
+
         [HttpPost]
         [Route(nameof(ReadPdf))]
         [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
@@ -53,6 +62,25 @@ namespace PDFReader.Controllers
         public async Task<IActionResult> GetList(int Id)
         {
             return Ok(await _shoppingListRepository.GetAsync(Id));
+        }
+
+        [HttpGet]
+        [Route(nameof(GetProductsDescriptionInfo))]
+        public async Task<IActionResult> GetProductsDescriptionInfo(int shoppingListId)
+        {
+            try
+            {
+                var result = await _productsDescriptionInfoRepository.GetAsync(shoppingListId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet]

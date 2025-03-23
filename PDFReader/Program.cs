@@ -25,7 +25,10 @@ builder.Services.AddDbContext<ListerDbContext>(options =>
 );
 
 builder.Services.AddSingleton<ISettings, AvoDietSettings>();
+// Register repositories
+builder.Services.AddTransient<IReadOnlyBulkRepository<ShoppingList>, ShoppingListRepository>();
 builder.Services.AddTransient<IRepository<ShoppingList, ProductChange>, ShoppingListRepository>();
+builder.Services.AddTransient<IReadOnlyRepository<ProductsDescriptionInfo>, ProductsDescriptionInfoRepository>();
 builder.Services.AddScoped<IDeviceAuthService, DeviceAuthService>();
 
 var app = builder.Build();
