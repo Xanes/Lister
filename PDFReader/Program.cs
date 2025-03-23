@@ -2,13 +2,20 @@ using Domain.Interfaces;
 using Domain.Models;
 using Infrastructure.Database;
 using Infrastructure.Repositories;
+using Infrastructure.Services;
 using Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using PDFReader.Extensions;
+using PDFReader.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
-builder.Services.AddSwaggerGen();
+
+// Configure Swagger
+builder.UseSwagger();
+
 builder.Services.AddDbContext<ListerDbContext>(options =>
 {
     var DbConnectionString = builder.Configuration["DbConnectionString"];
@@ -19,6 +26,7 @@ builder.Services.AddDbContext<ListerDbContext>(options =>
 
 builder.Services.AddSingleton<ISettings, AvoDietSettings>();
 builder.Services.AddTransient<IRepository<ShoppingList, ProductChange>, ShoppingListRepository>();
+builder.Services.AddScoped<IDeviceAuthService, DeviceAuthService>();
 
 var app = builder.Build();
 app.MapGet("/", () => StatusCodes.Status200OK);
@@ -29,6 +37,10 @@ app.UseCors(op =>
     op.AllowAnyOrigin();
 });
 app.UseRouting();
+
+// Add device authentication middleware
+app.UseDeviceAuthentication();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseEndpoints(endpoints =>
@@ -36,3 +48,4 @@ app.UseEndpoints(endpoints =>
     endpoints.MapControllers();
 });
 app.Run();
+
