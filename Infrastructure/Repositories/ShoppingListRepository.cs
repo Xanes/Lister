@@ -69,14 +69,31 @@ namespace Infrastructure.Repositories
         public async Task ResetAsync(int shoppingListId)
         {
             ShoppingList list = await GetAsync(shoppingListId);
-            var products = list.ProductCategories.SelectMany(p => p.Products);
-            foreach (var product in products)
+            var allProducts = list.ProductCategories.SelectMany(p => p.Products).ToList();
+            
+            // Identify temporary products to be removed
+            var temporaryProducts = allProducts.Where(p => p.IsTemporary).ToList();
+            
+            // Identify regular products to be reset
+            var regularProducts = allProducts.Where(p => !p.IsTemporary).ToList();
+            
+            // Reset regular products
+            foreach (var product in regularProducts)
             {
                 product.ChangedWeight = null;
                 product.ChangedQuantity = null;
                 product.IsChecked = false;
             }
-            _context.UpdateRange(products);
+            
+            // Remove temporary products
+            foreach (var product in temporaryProducts)
+            {
+                _context.Products.Remove(product);
+            }
+            
+            // Update the regular products
+            _context.UpdateRange(regularProducts);
+            
             await _context.SaveChangesAsync();
         }
     }

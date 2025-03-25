@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Infrastructure.PDF;
 using Domain.Models;
 using Domain.Interfaces;
-using System.Linq;
-using System.Collections.Generic;
+using PDFReader.DTOs;
+using PDFReader.Extensions;
 
 namespace PDFReader.Controllers
 {
@@ -15,15 +15,18 @@ namespace PDFReader.Controllers
         private readonly ISettings _settings;
         private readonly IRepository<ShoppingList, ProductChange> _shoppingListRepository;
         private readonly IReadOnlyRepository<ProductsDescriptionInfo> _productsDescriptionInfoRepository;
+        private readonly IAdditionalProductRepository _additionalProductRepository;
 
         public PdfController(
             ISettings settings, 
             IRepository<ShoppingList, ProductChange> shoppingListRepository,
-            IReadOnlyRepository<ProductsDescriptionInfo> productsDescriptionInfoRepository) 
+            IReadOnlyRepository<ProductsDescriptionInfo> productsDescriptionInfoRepository,
+            IAdditionalProductRepository additionalProductRepository) 
         {
             _settings = settings;
             _shoppingListRepository = shoppingListRepository;
             _productsDescriptionInfoRepository = productsDescriptionInfoRepository;
+            _additionalProductRepository = additionalProductRepository;
         }
 
         [HttpPost]
@@ -71,6 +74,58 @@ namespace PDFReader.Controllers
             try
             {
                 var result = await _productsDescriptionInfoRepository.GetAsync(shoppingListId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
+        [HttpPost]
+        [Route(nameof(AddAdditionalProducts))]
+        public async Task<IActionResult> AddAdditionalProducts(AdditionalProductRequest request)
+        {
+            try
+            {
+                // Validate request
+                if (request.CategoryProducts == null || !request.CategoryProducts.Any())
+                {
+                    return BadRequest("At least one category with products is required");
+                }
+
+                // Validate each product
+                foreach (var categoryProducts in request.CategoryProducts)
+                {
+                    if (categoryProducts.CategoryId <= 0)
+                    {
+                        return BadRequest("Invalid category ID");
+                    }
+
+                    if (categoryProducts.Products == null || !categoryProducts.Products.Any())
+                    {
+                        return BadRequest("Each category must have at least one product");
+                    }
+
+                    foreach (var product in categoryProducts.Products)
+                    {
+                        if (!product.IsValid())
+                        {
+                            return BadRequest($"Invalid product data for {product.Name}");
+                        }
+                    }
+                }
+
+                // Convert DTOs to domain models and add products to categories
+                var result = await _additionalProductRepository.AddProductsToCategoriesAsync(
+                    request.ShoppingListId,
+                    request.CategoryProducts.ToDomain()
+                );
+                    
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)

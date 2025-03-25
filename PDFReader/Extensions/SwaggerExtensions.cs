@@ -1,4 +1,5 @@
 ﻿using Microsoft.OpenApi.Models;
+using PDFReader.SwaggerConfig;
 
 namespace PDFReader.Extensions
 {
@@ -35,6 +36,14 @@ namespace PDFReader.Extensions
                                                 new string[] {}
                                             }
                                         });
+                
+                // Add operation filters for documentation examples
+                c.OperationFilter<SwaggerExampleFilter>();
+                
+                // Enable XML comments
+                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = System.IO.Path.Combine(AppContext.BaseDirectory, xmlFile);
+                c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
             });
         }
     }

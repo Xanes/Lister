@@ -11,5 +11,6 @@
         public double? ChangedWeight { get; set; }
         public string? WeightUnit { get; set; }
         public bool IsChecked { get; set; }
+        public bool IsTemporary { get; set; } = false;
     }
 }

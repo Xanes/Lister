@@ -1,5 +1,3 @@
-
-use lister;
 CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
     `MigrationId` varchar(150) CHARACTER SET utf8mb4 NOT NULL,
     `ProductVersion` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
@@ -354,6 +352,39 @@ BEGIN
 
     INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
     VALUES ('20250323083456_RemoveDeviceName', '7.0.11');
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+COMMIT;
+
+START TRANSACTION;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20250323210339_AddIsTemporaryField') THEN
+
+    ALTER TABLE `Products` ADD `IsTemporary` tinyint(1) NOT NULL DEFAULT FALSE;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20250323210339_AddIsTemporaryField') THEN
+
+    INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+    VALUES ('20250323210339_AddIsTemporaryField', '7.0.11');
 
     END IF;
 END //
