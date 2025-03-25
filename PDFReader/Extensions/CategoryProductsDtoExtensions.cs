@@ -7,7 +7,7 @@ namespace PDFReader.Extensions
 {
     public static class CategoryProductsDtoExtensions
     {
-        public static IEnumerable<(int categoryId, List<Product> products)> ToDomain(this IEnumerable<CategoryProductsDto> categoryProducts)
+        public static IEnumerable<(int categoryId, List<Product> products)> ToDomainAdditionalProducts(this IEnumerable<CategoryProductsDto> categoryProducts)
         {
             return categoryProducts.Select(cp => (
                 categoryId: cp.CategoryId,

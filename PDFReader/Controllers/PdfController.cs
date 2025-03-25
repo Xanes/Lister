@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Infrastructure.PDF;
 using Domain.Models;
 using Domain.Interfaces;
+using Domain.Exceptions;
 using PDFReader.DTOs;
 using PDFReader.Extensions;
 
@@ -123,10 +124,14 @@ namespace PDFReader.Controllers
                 // Convert DTOs to domain models and add products to categories
                 var result = await _additionalProductRepository.AddProductsToCategoriesAsync(
                     request.ShoppingListId,
-                    request.CategoryProducts.ToDomain()
+                    request.CategoryProducts.ToDomainAdditionalProducts()
                 );
                     
                 return Ok(result);
+            }
+            catch (Domain.Exceptions.DomainValidationException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (KeyNotFoundException ex)
             {

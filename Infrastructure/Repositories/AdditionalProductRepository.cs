@@ -1,5 +1,6 @@
 using Domain.Interfaces;
 using Domain.Models;
+using Domain.Exceptions;
 using Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -34,6 +35,15 @@ namespace Infrastructure.Repositories
             // Process each category and its products
             foreach (var (categoryId, products) in categoryProducts)
             {
+                // Validate that all products have IsTemporary flag set to true
+                foreach (var product in products)
+                {
+                    if (!product.IsTemporary)
+                    {
+                        throw new DomainValidationException($"Product '{product.Name}' must have IsTemporary set to true");
+                    }
+                }
+
                 // Find the category in the shopping list
                 var category = shoppingList.ProductCategories
                     .FirstOrDefault(pc => pc.Category?.Id == categoryId);
@@ -58,12 +68,6 @@ namespace Infrastructure.Repositories
                     };
 
                     shoppingList.ProductCategories.Add(category);
-                }
-
-                // Set IsTemporary flag to true for all products
-                foreach (var product in products)
-                {
-                    product.IsTemporary = true;
                 }
 
                 // Add products to the category
