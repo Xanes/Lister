@@ -6,6 +6,7 @@ using Domain.Interfaces;
 using Domain.Exceptions;
 using PDFReader.DTOs;
 using PDFReader.Extensions;
+using Domain.Extensions;
 
 namespace PDFReader.Controllers
 {
@@ -14,18 +15,18 @@ namespace PDFReader.Controllers
     public class PdfController : ControllerBase
     {
         private readonly ISettings _settings;
-        private readonly IRepository<ShoppingList, ProductChange> _shoppingListRepository;
+        private readonly IDietRepository _dietRepository;
         private readonly IReadOnlyRepository<ProductsDescriptionInfo> _productsDescriptionInfoRepository;
         private readonly IAdditionalProductRepository _additionalProductRepository;
 
         public PdfController(
             ISettings settings, 
-            IRepository<ShoppingList, ProductChange> shoppingListRepository,
+            IDietRepository dietRepository,
             IReadOnlyRepository<ProductsDescriptionInfo> productsDescriptionInfoRepository,
             IAdditionalProductRepository additionalProductRepository) 
         {
             _settings = settings;
-            _shoppingListRepository = shoppingListRepository;
+            _dietRepository = dietRepository;
             _productsDescriptionInfoRepository = productsDescriptionInfoRepository;
             _additionalProductRepository = additionalProductRepository;
         }
@@ -37,7 +38,12 @@ namespace PDFReader.Controllers
         public async Task<IActionResult> ReadPdf(string name, string description, List<IFormFile> fileList)
         {
             PDFProductsFinder finder = new PDFProductsFinder(_settings);
-            var shoppingLists = fileList.Select(file => finder.FindProducts(file.OpenReadStream())).ToList();
+            ScheduleFinder scheduleFinder = new ScheduleFinder(_settings);
+            PDFDocumentReader reader = new PDFDocumentReader();
+
+            var documents = fileList.Select(f => reader.Read(f.OpenReadStream())).ToList();
+            var shoppingLists = documents.Select(file => finder.FindProducts(file)).ToList();
+            var mealScheduleItems = documents.SelectMany(d => scheduleFinder.GetMealsSchedule(d, 0)).RemoveDuplicates();
 
             ShoppingListMerger merger = new ShoppingListMerger();
 
@@ -56,7 +62,7 @@ namespace PDFReader.Controllers
                 CreatedAt= DateTime.UtcNow
             };
 
-            var result = await _shoppingListRepository.CreateAsync(list);
+            var result = await _dietRepository.CreateAsync(list, mealScheduleItems);
 
             return Ok(result);
         }
@@ -65,7 +71,26 @@ namespace PDFReader.Controllers
         [Route(nameof(GetList))]
         public async Task<IActionResult> GetList(int Id)
         {
-            return Ok(await _shoppingListRepository.GetAsync(Id));
+            return Ok(await _dietRepository.GetAsync(Id));
+        }
+
+        [HttpGet]
+        [Route(nameof(GetMealSchedule))]
+        public async Task<IActionResult> GetMealSchedule(int shoppingListId)
+        {
+            try
+            {
+                var mealSchedules = await _dietRepository.GetMealSchedulesAsync(shoppingListId);
+                return Ok(mealSchedules.ToDTOs());
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
 
         [HttpGet]
@@ -147,14 +172,14 @@ namespace PDFReader.Controllers
         [Route(nameof(GetAllLists))]
         public async Task<IActionResult> GetAllLists()
         {
-            return Ok(await _shoppingListRepository.GetAllAsync());
+            return Ok(await _dietRepository.GetAllAsync());
         }
 
         [HttpDelete]
         [Route(nameof(DeleteList))]
         public async Task<IActionResult> DeleteList(int id)
         {
-            await _shoppingListRepository.DeleteAsync(id);
+            await _dietRepository.DeleteAsync(id);
             return Ok();
         }
 
@@ -162,7 +187,7 @@ namespace PDFReader.Controllers
         [Route(nameof(UpdateProducts))]
         public async Task<IActionResult> UpdateProducts(List<ProductChange> productChanges)
         {
-            await _shoppingListRepository.UpdateAsync(productChanges);
+            await _dietRepository.UpdateAsync(productChanges);
             return Ok();
         }
 
@@ -170,7 +195,7 @@ namespace PDFReader.Controllers
         [Route(nameof(ResetList))]
         public async Task<IActionResult> ResetList(int shoppingListId)
         {
-            await _shoppingListRepository.ResetAsync(shoppingListId);
+            await _dietRepository.ResetAsync(shoppingListId);
             return Ok();
         }
     }

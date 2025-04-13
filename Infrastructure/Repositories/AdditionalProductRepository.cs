@@ -13,20 +13,20 @@ namespace Infrastructure.Repositories
     public class AdditionalProductRepository : IAdditionalProductRepository
     {
         private readonly ListerDbContext _context;
-        private readonly IReadOnlyRepository<ShoppingList> _shoppingListRepository;
+        private readonly IDietRepository _dietRepository;
 
         public AdditionalProductRepository(
             ListerDbContext context,
-            IReadOnlyRepository<ShoppingList> shoppingListRepository)
+            IDietRepository dietRepository)
         {
             _context = context;
-            _shoppingListRepository = shoppingListRepository;
+            _dietRepository = dietRepository;
         }
 
         public async Task<ShoppingList> AddProductsToCategoriesAsync(int shoppingListId, IEnumerable<(int categoryId, List<Product> products)> categoryProducts)
         {
             // Get the shopping list
-            var shoppingList = await _shoppingListRepository.GetAsync(shoppingListId);
+            var shoppingList = await _dietRepository.GetAsync(shoppingListId);
             if (shoppingList == null)
             {
                 throw new KeyNotFoundException($"Shopping list with ID {shoppingListId} not found");

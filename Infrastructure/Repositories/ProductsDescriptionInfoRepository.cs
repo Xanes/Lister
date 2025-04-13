@@ -12,11 +12,11 @@ namespace Infrastructure.Repositories
     public class ProductsDescriptionInfoRepository : IReadOnlyRepository<ProductsDescriptionInfo>
     {
         private readonly ListerDbContext _context;
-        private readonly IReadOnlyBulkRepository<ShoppingList> _shoppingListRepository;
+        private readonly IDietRepository _shoppingListRepository;
 
         public ProductsDescriptionInfoRepository(
             ListerDbContext context, 
-            IReadOnlyBulkRepository<ShoppingList> shoppingListRepository)
+            IDietRepository shoppingListRepository)
         {
             _context = context;
             _shoppingListRepository = shoppingListRepository;

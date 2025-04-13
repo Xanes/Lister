@@ -14,5 +14,6 @@ namespace Domain.Models
         public string? Description { get; set; } 
         public DateTime CreatedAt { get; set; }
         public List<ProductCategoryGroup>  ProductCategories { get; set; } = new List<ProductCategoryGroup>();
+        public virtual List<MealSchedule> MealSchedules { get; set; } = new();
     }
 }

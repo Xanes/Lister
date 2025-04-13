@@ -16,6 +16,8 @@ namespace Infrastructure.Settings
 
         public string ShoppingListFooter => "ROZPISKA DNI";
 
+        public string SchedulerHeader => "PODSUMOWANIE JADŁOSPISU";
+
         private string[] ignoredWords = { "LISTA ZAKUPÓW",
                                           "wartość odżywcza produktów pochodzi ze źródła: baza danych „tabele wartości odżywczej produktów spożywczych i potraw – instytut żywności i żywienia,warszawa 2017" };
 

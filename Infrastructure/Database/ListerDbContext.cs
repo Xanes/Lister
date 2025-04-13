@@ -17,11 +17,13 @@ namespace Infrastructure.Database
         public DbSet<Category> Categories { get; set; }
         public DbSet<TrustedDevice> TrustedDevices { get; set; }
         public DbSet<PasswordConfig> PasswordConfigs { get; set; }
+        public DbSet<MealSchedule> MealSchedules { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.ApplyConfiguration(new CategoryConfiguration());
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(ListerDbContext).Assembly);
         }
     }
 }

@@ -6,36 +6,68 @@ using System.Net.WebSockets;
 
 namespace Infrastructure.Repositories
 {
-    public class ShoppingListRepository : IRepository<ShoppingList, ProductChange>
+    public class DietRepository : IDietRepository
     {
         private readonly ListerDbContext _context;
 
-        public ShoppingListRepository(ListerDbContext listerDbContext)
+        public DietRepository(ListerDbContext listerDbContext)
         {
             _context = listerDbContext;
         }
 
-        public async Task<ShoppingList> CreateAsync(ShoppingList entity)
+        public async Task<ShoppingList> CreateAsync(ShoppingList entity, List<MealSchedule> mealSchedules)
         {
-            var categories = await _context.Categories.ToListAsync();
-            entity.ProductCategories?.Where(c => c.Category != null ).ToList().ForEach(c =>
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                var category = categories.FirstOrDefault(cat => cat.Name == c.Category?.Name);
-                if (c.Category != null && category != null)
+                // Handle categories
+                var categories = await _context.Categories.ToListAsync();
+                entity.ProductCategories?.Where(c => c.Category != null).ToList().ForEach(c =>
                 {
-                    c.Category = category;
-                    _context.Entry(c.Category).State = EntityState.Modified;
+                    var category = categories.FirstOrDefault(cat => cat.Name == c.Category?.Name);
+                    if (c.Category != null && category != null)
+                    {
+                        c.Category = category;
+                        _context.Entry(c.Category).State = EntityState.Modified;
+                    }
+                });
+
+                // Add shopping list
+                var result = await _context.AddAsync(entity);
+                await _context.SaveChangesAsync();
+
+                // Add meal schedules with the new shopping list ID
+                if (mealSchedules?.Any() == true)
+                {
+                    foreach (var schedule in mealSchedules)
+                    {
+                        schedule.ShoppingListId = result.Entity.Id;
+                    }
+                    await _context.MealSchedules.AddRangeAsync(mealSchedules);
+                    await _context.SaveChangesAsync();
                 }
-                
-            });
-            var result = await _context.AddAsync(entity);
-            await _context.SaveChangesAsync();
-            return result.Entity;
+
+                await transaction.CommitAsync();
+                var returnEntity = result.Entity;
+                returnEntity.MealSchedules.Clear();
+                return returnEntity;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<ShoppingList> GetAsync(int id)
         {
-            return await _context.ShoppingLists.Include(c => c.ProductCategories).ThenInclude(c => c.Products).Include(c => c.ProductCategories).ThenInclude(c => c.Category).FirstAsync(p => p.Id == id);
+            return await _context.ShoppingLists
+                .Include(c => c.ProductCategories)
+                .ThenInclude(c => c.Products)
+                .Include(c => c.ProductCategories)
+                .ThenInclude(c => c.Category)
+                .Include(c => c.MealSchedules)
+                .FirstAsync(p => p.Id == id);
         }
 
         public async Task<IEnumerable<ShoppingList>> GetAllAsync()
@@ -44,7 +76,7 @@ namespace Infrastructure.Repositories
         }
 
         public async Task DeleteAsync(int id)
-        { 
+        {
             var entity = await _context.ShoppingLists.Include(c => c.ProductCategories).ThenInclude(c => c.Products).FirstAsync(p => p.Id == id);
             entity.ProductCategories.SelectMany(p => p.Products).ToList().ForEach(p => _context.Remove(p));
             entity.ProductCategories.ForEach(c => _context.Remove(c));
@@ -70,13 +102,13 @@ namespace Infrastructure.Repositories
         {
             ShoppingList list = await GetAsync(shoppingListId);
             var allProducts = list.ProductCategories.SelectMany(p => p.Products).ToList();
-            
+
             // Identify temporary products to be removed
             var temporaryProducts = allProducts.Where(p => p.IsTemporary).ToList();
-            
+
             // Identify regular products to be reset
             var regularProducts = allProducts.Where(p => !p.IsTemporary).ToList();
-            
+
             // Reset regular products
             foreach (var product in regularProducts)
             {
@@ -84,17 +116,24 @@ namespace Infrastructure.Repositories
                 product.ChangedQuantity = null;
                 product.IsChecked = false;
             }
-            
+
             // Remove temporary products
             foreach (var product in temporaryProducts)
             {
                 _context.Products.Remove(product);
             }
-            
+
             // Update the regular products
             _context.UpdateRange(regularProducts);
-            
+
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<IEnumerable<MealSchedule>> GetMealSchedulesAsync(int shoppingListId)
+        {
+            return await _context.MealSchedules
+                .Where(m => m.ShoppingListId == shoppingListId)
+                .ToListAsync();
         }
     }
 }

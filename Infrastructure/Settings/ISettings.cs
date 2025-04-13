@@ -13,5 +13,6 @@ namespace Infrastructure.Settings
 
         string ShoppingListHeader { get; }
         string ShoppingListFooter { get; }
+        string SchedulerHeader { get; }
     }
 }
