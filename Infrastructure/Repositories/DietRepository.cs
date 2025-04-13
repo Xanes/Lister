@@ -66,7 +66,6 @@ namespace Infrastructure.Repositories
                 .ThenInclude(c => c.Products)
                 .Include(c => c.ProductCategories)
                 .ThenInclude(c => c.Category)
-                .Include(c => c.MealSchedules)
                 .FirstAsync(p => p.Id == id);
         }
 
@@ -134,6 +133,26 @@ namespace Infrastructure.Repositories
             return await _context.MealSchedules
                 .Where(m => m.ShoppingListId == shoppingListId)
                 .ToListAsync();
+        }
+
+        public async Task<ShoppingList> GetListInfoAsync(int id)
+        {
+            var list = await _context.ShoppingLists
+                .Select(l => new ShoppingList 
+                { 
+                    Id = l.Id, 
+                    Name = l.Name, 
+                    Description = l.Description, 
+                    CreatedAt = l.CreatedAt 
+                })
+                .FirstOrDefaultAsync(l => l.Id == id);
+
+            if (list == null)
+            {
+                throw new KeyNotFoundException($"Shopping list with ID {id} not found");
+            }
+
+            return list;
         }
     }
 }

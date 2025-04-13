@@ -16,5 +16,6 @@ namespace Domain.Interfaces
         Task ResetAsync(int shoppingListId);
         Task UpdateAsync(List<ProductChange> productChanges);
         Task<IEnumerable<MealSchedule>> GetMealSchedulesAsync(int shoppingListId);
+        Task<ShoppingList> GetListInfoAsync(int id);
     }
 }

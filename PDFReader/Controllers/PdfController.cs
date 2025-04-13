@@ -175,6 +175,25 @@ namespace PDFReader.Controllers
             return Ok(await _dietRepository.GetAllAsync());
         }
 
+        [HttpGet]
+        [Route(nameof(GetListInfo))]
+        public async Task<IActionResult> GetListInfo(int id)
+        {
+            try
+            {
+                var list = await _dietRepository.GetListInfoAsync(id);
+                return Ok(list);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
         [HttpDelete]
         [Route(nameof(DeleteList))]
         public async Task<IActionResult> DeleteList(int id)
