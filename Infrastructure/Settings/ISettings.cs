@@ -10,5 +10,8 @@ namespace Infrastructure.Settings
     {
         string[] IgnoreWords { get; }
         string[] Categories { get; }
+
+        string ShoppingListHeader { get; }
+        string ShoppingListFooter { get; }
     }
 }

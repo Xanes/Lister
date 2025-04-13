@@ -12,6 +12,9 @@ namespace Infrastructure.Settings
 
         public string[] Categories => categories;
 
+        public string ShoppingListHeader => string.Empty;
+
+        public string ShoppingListFooter => string.Empty;
 
         private string[] ignoredWords = { "Lista zakupów",
                                           "PRODUKTILOŚĆWAGAPRODUKTILOŚĆWAGA"

@@ -1,6 +1,5 @@
 ﻿using Domain.Models;
 using Infrastructure.Settings;
-using Syncfusion.DocIO.DLS;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Parsing;
 using System.Text.RegularExpressions;
@@ -29,9 +28,10 @@ namespace Infrastructure.PDF
 
             using (PdfLoadedDocument loadedDocument = new PdfLoadedDocument(fsSource))
             {
-                for (int i = 0; i < loadedDocument.Pages.Count; i++)
+                var pagesToProcess = GetShoppingListPages(loadedDocument);
+                for (int i = 0; i < pagesToProcess.Count; i++)
                 {
-                    loadedDocument.Pages[i].ExtractText(out TextLineCollection textlineCollection);
+                    pagesToProcess[i].ExtractText(out TextLineCollection textlineCollection);
                     List<TextLine> line = new List<TextLine>();
                     var textlines = textlineCollection.TextLine.Select(t =>
                     {
@@ -41,7 +41,7 @@ namespace Infrastructure.PDF
                     }).ToList();
                     foreach (var textline in textlineCollection.TextLine)
                     {
-                        if (_settings.IgnoreWords.Contains(textline.Text))
+                        if (_settings.IgnoreWords.Any(i => textline.Text.ToLower().Contains(i.ToLower())))
                         {
                             continue;
                         }
@@ -129,6 +129,35 @@ namespace Infrastructure.PDF
             {
                 return input; 
             }
+        }
+
+        List<PdfPageBase> GetShoppingListPages(PdfLoadedDocument pdfLoadedDocument)
+        {
+            var pagesToProcess = new List<PdfPageBase>();
+            bool addPages = false;
+
+            for (int i = 0; i < pdfLoadedDocument.Pages.Count; i++)
+            {
+                pdfLoadedDocument.Pages[i].ExtractText(out TextLineCollection textlineCollection);
+                var text = string.Join(string.Empty, textlineCollection.TextLine.Select(l => l.Text)).Trim().Trim().ToLower();
+
+                if (text.Contains(_settings.ShoppingListFooter.Trim().ToLower()))
+                {
+                    return pagesToProcess;
+                }
+
+                if (text.Contains(_settings.ShoppingListHeader.ToLower()))
+                {
+                    addPages = true;
+                    pagesToProcess.Add(pdfLoadedDocument.Pages[i]);
+                }else if (addPages)
+                {
+                    pagesToProcess.Add(pdfLoadedDocument.Pages[i]);
+                }
+
+               
+            }
+            return pagesToProcess;
         }
     }
 }

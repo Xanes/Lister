@@ -12,9 +12,12 @@ namespace Infrastructure.Settings
 
         public string[] Categories => categories;
 
+        public string ShoppingListHeader => ignoredWords[0];
+
+        public string ShoppingListFooter => "ROZPISKA DNI";
+
         private string[] ignoredWords = { "LISTA ZAKUPÓW",
-                                          "Wartość odżywcza produktów pochodzi ze źródła: Baza danych „Tabele wartości odżywczej produktów spożywczych i potraw – Instytut Żywności i Żywienia, Warszawa 2017, Wydanie IV\r\nrozszerzone i uaktualnione (poprzednik prawny Narodowego Instytutu Zdrowia Publicznego PZH – Państwowego Instytutu Badawczego)” i zostały wykorzystane za zgodą Narodowego\r\nInstytutu Zdrowia Publicznego PZH – Państwowego Instytutu Badawczego w Warszawie. "
-                                        };
+                                          "wartość odżywcza produktów pochodzi ze źródła: baza danych „tabele wartości odżywczej produktów spożywczych i potraw – instytut żywności i żywienia,warszawa 2017" };
 
         private string[] categories = { "Pieczywo",
                                         "Zbożowe",
@@ -31,3 +34,4 @@ namespace Infrastructure.Settings
                                         };
     }
 }
+
