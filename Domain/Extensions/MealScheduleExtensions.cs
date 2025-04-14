@@ -16,7 +16,7 @@ public static class MealScheduleExtensions
                 s.MealType, 
                 s.MealName 
             })
-            .Select(g => g.First())
+            .Select(g => g.OrderByDescending(x => x.Time != null).First())
             .ToList();
     }
 } 
