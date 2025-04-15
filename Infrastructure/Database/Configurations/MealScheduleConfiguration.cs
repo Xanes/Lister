@@ -32,5 +32,10 @@ public class MealScheduleConfiguration : IEntityTypeConfiguration<MealSchedule>
             .WithMany(x => x.MealSchedules)
             .HasForeignKey(x => x.ShoppingListId)
             .OnDelete(DeleteBehavior.Cascade);
+            
+        builder.HasOne(x => x.Recipe)
+            .WithMany(x => x.MealSchedules)
+            .HasForeignKey(x => x.RecipeId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 } 

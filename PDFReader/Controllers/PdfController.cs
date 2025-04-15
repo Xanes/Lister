@@ -40,10 +40,12 @@ namespace PDFReader.Controllers
             PDFProductsFinder finder = new PDFProductsFinder(_settings);
             ScheduleFinder scheduleFinder = new ScheduleFinder(_settings);
             PDFDocumentReader reader = new PDFDocumentReader();
+            ReceipeFinder receipeFinder = new ReceipeFinder(_settings);
 
             var documents = fileList.Select(f => reader.Read(f.OpenReadStream())).ToList();
             var shoppingLists = documents.Select(file => finder.FindProducts(file)).ToList();
-            var mealScheduleItems = documents.SelectMany(d => scheduleFinder.GetMealsSchedule(d, 0)).RemoveDuplicates();
+            var mealScheduleItems = documents.Select(d => scheduleFinder.GetMealsSchedule(d, 0)).ToList();
+            var recipes = documents.SelectMany(d => receipeFinder.GetReceipes(d)).ToList().MergeDuplicateRecipes();
 
             ShoppingListMerger merger = new ShoppingListMerger();
 
@@ -62,7 +64,7 @@ namespace PDFReader.Controllers
                 CreatedAt= DateTime.UtcNow
             };
 
-            var result = await _dietRepository.CreateAsync(list, mealScheduleItems);
+            var result = await _dietRepository.CreateAsync(list, mealScheduleItems.SelectMany(t => t).RemoveDuplicates(), recipes);
 
             return Ok(result);
         }
@@ -216,6 +218,26 @@ namespace PDFReader.Controllers
         {
             await _dietRepository.ResetAsync(shoppingListId);
             return Ok();
+        }
+
+        [HttpGet]
+        [Route(nameof(GetRecipe))]
+        public async Task<IActionResult> GetRecipe(int recipeId)
+        {
+            try
+            {
+                var recipe = await _dietRepository.GetRecipeAsync(recipeId);
+                var recipeDto = RecipeDTO.FromModel(recipe);
+                return Ok(recipeDto);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

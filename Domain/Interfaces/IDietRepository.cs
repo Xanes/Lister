@@ -9,7 +9,7 @@ namespace Domain.Interfaces
 {
     public interface IDietRepository
     {
-        Task<ShoppingList> CreateAsync(ShoppingList entity, List<MealSchedule> mealSchedules);
+        Task<ShoppingList> CreateAsync(ShoppingList entity, List<MealSchedule> mealSchedules, List<Recipe> recipes);
         Task DeleteAsync(int id);
         Task<IEnumerable<ShoppingList>> GetAllAsync();
         Task<ShoppingList> GetAsync(int id);
@@ -17,5 +17,7 @@ namespace Domain.Interfaces
         Task UpdateAsync(List<ProductChange> productChanges);
         Task<IEnumerable<MealSchedule>> GetMealSchedulesAsync(int shoppingListId);
         Task<ShoppingList> GetListInfoAsync(int id);
+        Task<Recipe> GetRecipeAsync(int recipeId);
+        Task<IEnumerable<Recipe>> GetRecipesByNameAsync(string name);
     }
 }

@@ -11,7 +11,9 @@ public record MealSchedule : IEntity
     public MealTypes MealType { get; set; }
     public string MealName { get; set; } = string.Empty;
     public TimeSpan? Time { get; set; }
+    public int RecipeId { get; set; }
     
-    // Navigation property
+    // Navigation properties
     public virtual ShoppingList? ShoppingList { get; set; }
+    public virtual Recipe Recipe { get; set; } = null!;
 } 
