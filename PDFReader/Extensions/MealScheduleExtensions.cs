@@ -31,7 +31,8 @@ public static class MealScheduleExtensions
                 _ => string.Empty
             },
             MealName = schedule.MealName,
-            Time = schedule.Time
+            Time = schedule.Time,
+            RecipeId = schedule.RecipeId,
         };
     }
 

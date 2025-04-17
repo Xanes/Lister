@@ -55,12 +55,12 @@ namespace Infrastructure.Repositories
                             r.Name.Equals(schedule.MealName, StringComparison.OrdinalIgnoreCase));
                             
                         // If no exact match, try matching first 12 letters
-                        if (matchingRecipe == null && schedule.MealName?.Length >= 12 && recipes?.Any() == true)
+                        if (matchingRecipe == null && schedule.MealName?.Length >= 5 && recipes?.Any() == true)
                         {
-                            var scheduleName12 = schedule.MealName.Substring(0, 12).ToLower();
+                            var scheduleName12 = schedule.MealName.Substring(0, 5).ToLower();
                             matchingRecipe = recipes.FirstOrDefault(r => 
-                                r.Name?.Length >= 12 && 
-                                r.Name.Substring(0, 12).ToLower() == scheduleName12);
+                                r.Name?.Length >= 5 && 
+                                r.Name.Substring(0, 5).ToLower() == scheduleName12);
                         }
                             
                         if (matchingRecipe != null)

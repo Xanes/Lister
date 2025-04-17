@@ -15,9 +15,17 @@ namespace Infrastructure.PDF
     public class ScheduleFinder
     {
         private readonly ISettings _settings;
+        private readonly Regex _mealTypePattern;
+        private readonly Regex _timePattern;
+        private readonly Regex _headerPattern;
+        private readonly string[] _mealTypes = { "ŚNIADANIE", "DRUGIE ŚNIADANIE", "PRZEKĄSKA", "OBIAD", "KOLACJA" };
+
         public ScheduleFinder(ISettings settings) 
         {
             _settings = settings;
+            _mealTypePattern = new Regex(@"^(ŚNIADANIE|DRUGIE ŚNIADANIE|PRZEKĄSKA|OBIAD|KOLACJA)[E]*(?:\s*\d{2}:\d{2})?$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            _timePattern = new Regex(@"\d{2}:\d{2}$", RegexOptions.Compiled);
+            _headerPattern = new Regex(@"^(Poniedziałek|Wtorek|Środa|Czwartek|Piątek|Sobota|Niedziela|PODSUMOWANIE JADŁOSPISU|ROZPISKA DNI)$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         }
 
         public List<MealSchedule> GetMealsSchedule(PdfLoadedDocument pdfLoadedDocument, int shoppingListId)
@@ -35,25 +43,49 @@ namespace Infrastructure.PDF
             return new List<MealSchedule>();
         }
 
+        private string RemoveDatePatterns(string text)
+        {
+            var datePattern = @"\d{2}\.\d{2}\.\d{4}";
+            return Regex.Replace(text, datePattern, string.Empty).Trim();
+        }
+
+        private MealSchedule CreateMealSchedule(
+            int shoppingListId,
+            string mealTypeText,
+            MealTypes mealType,
+            TimeSpan? mealTime,
+            List<string> mealParts,
+            int dayIndex)
+        {
+            return new MealSchedule
+            {
+                ShoppingListId = shoppingListId,
+                DayOfWeek = GetDayByIndex(dayIndex),
+                MealType = mealType,
+                MealName = string.Join(" ", mealParts).Trim(),
+                Time = mealTime
+            };
+        }
+
         public List<MealSchedule> ParseMealSchedule(string scheduleText, int shoppingListId)
         {
             var result = new List<MealSchedule>();
+            scheduleText = RemoveDatePatterns(scheduleText);
             
-            var parts = scheduleText.Split(" | ", StringSplitOptions.RemoveEmptyEntries);
+            var parts = scheduleText.Split(" | ", StringSplitOptions.RemoveEmptyEntries)
+                                  .Where(p => !string.IsNullOrWhiteSpace(p))
+                                  .Select(p => p.Trim())
+                                  .ToArray();
             
-            if (parts.Length < 3)
-            {
-                return result;
-            }
+            if (parts.Length < 3) return result;
             
-            var startingIndex = 2;
+            var startingIndex = FindStartingIndex(parts);
             var mealTypeCounts = new Dictionary<string, int>();
             
             string currentMealTypeText = null;
             MealTypes currentMealType = MealTypes.Sniadanie;
             TimeSpan? currentMealTime = null;
-            string currentMealName = "";
-            DaysOfWeek currentDay = DaysOfWeek.Poniedzialek;
+            List<string> currentMealParts = new List<string>();
             
             for (int i = startingIndex; i < parts.Length; i++)
             {
@@ -61,104 +93,117 @@ namespace Infrastructure.PDF
                 
                 if (IsMealTypeWithTime(part))
                 {
-                    if (!string.IsNullOrEmpty(currentMealName) && currentMealTypeText != null)
+                    if (currentMealParts.Any() && currentMealTypeText != null)
                     {
                         string baseMealType = GetBaseMealType(currentMealTypeText);
                         if (!mealTypeCounts.ContainsKey(baseMealType))
                         {
                             mealTypeCounts[baseMealType] = 0;
                         }
-                        
-                        currentDay = GetDayByIndex(mealTypeCounts[baseMealType]);
-                        
-                        var mealSchedule = new MealSchedule
-                        {
-                            ShoppingListId = shoppingListId,
-                            DayOfWeek = currentDay,
-                            MealType = currentMealType,
-                            MealName = currentMealName.Trim(),
-                            Time = currentMealTime
-                        };
-                        
+
+                        var mealSchedule = CreateMealSchedule(
+                            shoppingListId,
+                            currentMealTypeText,
+                            currentMealType,
+                            currentMealTime,
+                            currentMealParts,
+                            mealTypeCounts[baseMealType]);
+
                         result.Add(mealSchedule);
                         mealTypeCounts[baseMealType]++;
-                        currentMealName = "";
                     }
                     
                     currentMealTypeText = part;
                     currentMealType = ParseMealType(part);
                     currentMealTime = ExtractTime(part);
+                    currentMealParts = new List<string>();
                 }
-                else
+                else if (currentMealTypeText != null && !IsHeaderText(part) && !IsMealTypeWithTime(part))
                 {
-                    if (currentMealTypeText != null)
+                    if (!string.IsNullOrWhiteSpace(part) && !part.All(c => char.IsDigit(c) || c == '.'))
                     {
-                        if (!string.IsNullOrEmpty(currentMealName))
+                        if (!_timePattern.IsMatch(part))
                         {
-                            currentMealName += " ";
+                            currentMealParts.Add(part);
                         }
-                        currentMealName += part;
                     }
                 }
             }
             
-            if (!string.IsNullOrEmpty(currentMealName) && currentMealTypeText != null)
+            if (currentMealParts.Any() && currentMealTypeText != null)
             {
                 string baseMealType = GetBaseMealType(currentMealTypeText);
                 if (!mealTypeCounts.ContainsKey(baseMealType))
                 {
                     mealTypeCounts[baseMealType] = 0;
                 }
-                
-                currentDay = GetDayByIndex(mealTypeCounts[baseMealType]);
-                
-                var mealSchedule = new MealSchedule
-                {
-                    ShoppingListId = shoppingListId,
-                    DayOfWeek = currentDay,
-                    MealType = currentMealType,
-                    MealName = currentMealName.Trim(),
-                    Time = currentMealTime
-                };
-                
+
+                var mealSchedule = CreateMealSchedule(
+                    shoppingListId,
+                    currentMealTypeText,
+                    currentMealType,
+                    currentMealTime,
+                    currentMealParts,
+                    mealTypeCounts[baseMealType]);
+
                 result.Add(mealSchedule);
             }
             
             return result;
         }
+
+        private int FindStartingIndex(string[] parts)
+        {
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (IsMealTypeWithTime(parts[i]))
+                {
+                    return i;
+                }
+            }
+            return 2;
+        }
+
+        private bool IsHeaderText(string text)
+        {
+            return _headerPattern.IsMatch(text);
+        }
         
         private bool IsMealTypeWithTime(string text)
         {
-            // Match meal types with optional time (e.g., "Śniadanie08:00" or just "Śniadanie")
-            var regex = new Regex(@"(Śniadanie|Drugie śniadanie|Obiad|Kolacja)(?:\d{2}:\d{2})?");
-            return regex.IsMatch(text);
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            string cleanText = text.ToUpper().Trim();
+            return _mealTypePattern.IsMatch(cleanText);
         }
         
         private string GetBaseMealType(string mealTypeWithTime)
         {
-            // Extract just the meal type part (e.g., "Śniadanie" from "Śniadanie08:00")
-            var regex = new Regex(@"(Śniadanie|Drugie śniadanie|Obiad|Kolacja)");
-            var match = regex.Match(mealTypeWithTime);
-            return match.Success ? match.Value : string.Empty;
+            string cleanText = Regex.Replace(mealTypeWithTime.ToUpper().Trim(), "E+$", "");
+            foreach (var mealType in _mealTypes)
+            {
+                if (cleanText.StartsWith(mealType, StringComparison.OrdinalIgnoreCase))
+                {
+                    return mealType;
+                }
+            }
+            return string.Empty;
         }
         
         private MealTypes ParseMealType(string text)
         {
-            string baseMealType = GetBaseMealType(text);
+            string cleanText = Regex.Replace(text.ToUpper().Trim(), "E+$", "");
             
-            switch (baseMealType.ToLower())
-            {
-                case "śniadanie":
-                    return MealTypes.Sniadanie;
-                case "drugie śniadanie":
-                    return MealTypes.DrugieSniadanie;
-                case "obiad":
-                    return MealTypes.Obiad;
-                case "kolacja":
-                    return MealTypes.Kolacja;
-                default:
-                    return MealTypes.Sniadanie; // Default
-            }
+            if (cleanText.StartsWith("ŚNIADANIE", StringComparison.OrdinalIgnoreCase))
+                return MealTypes.Sniadanie;
+            if (cleanText.StartsWith("DRUGIE ŚNIADANIE", StringComparison.OrdinalIgnoreCase) || 
+                cleanText.StartsWith("PRZEKĄSKA", StringComparison.OrdinalIgnoreCase))
+                return MealTypes.DrugieSniadanie;
+            if (cleanText.StartsWith("OBIAD", StringComparison.OrdinalIgnoreCase))
+                return MealTypes.Obiad;
+            if (cleanText.StartsWith("KOLACJA", StringComparison.OrdinalIgnoreCase))
+                return MealTypes.Kolacja;
+            
+            return MealTypes.Sniadanie; // Default
         }
         
         private DaysOfWeek GetDayByIndex(int index)
@@ -172,14 +217,13 @@ namespace Infrastructure.PDF
                 4 => DaysOfWeek.Piatek,
                 5 => DaysOfWeek.Sobota,
                 6 => DaysOfWeek.Niedziela,
-                _ => DaysOfWeek.Poniedzialek // Default to Monday for overflow
+                _ => DaysOfWeek.Poniedzialek
             };
         }
 
         private TimeSpan? ExtractTime(string text)
         {
-            var regex = new Regex(@"\d{2}:\d{2}");
-            var match = regex.Match(text);
+            var match = _timePattern.Match(text);
             if (match.Success)
             {
                 if (TimeSpan.TryParse(match.Value, out TimeSpan time))

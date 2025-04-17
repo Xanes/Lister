@@ -53,6 +53,9 @@ namespace Infrastructure.PDF
             // Remove "ROZPISKA DNI" parts
             receipesText = receipesText.Replace("ROZPISKA DNI", "");
             
+            // Remove standalone dates (not part of meal headers)
+            receipesText = Regex.Replace(receipesText, @"\|\s*\d{2}\.\d{2}\.\d{4}\s*\|", "|");
+            
             // Remove day names
             foreach (var day in _dayNames)
             {
@@ -60,21 +63,43 @@ namespace Infrastructure.PDF
             }
             
             // Split the text by the delimiter
-            var parts = receipesText.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = receipesText.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries)
+                                  .Where(p => !string.IsNullOrWhiteSpace(p))
+                                  .Select(p => p.Trim())
+                                  .ToArray();
             
             // Process each part
             for (int i = 0; i < parts.Length; i++)
             {
                 // Check if the current part is a meal header
-                var mealHeaderMatch = Regex.Match(parts[i], @"^(.+?)E: (\d+)kcalB: ([\d,]+)gT: ([\d,]+)gW: ([\d,]+)gF: ([\d,]+)g$");
-                if (mealHeaderMatch.Success)
+                var mealHeaderMatch = Regex.Match(parts[i], @"^(?:(.+?)(?:\s+\d{2}:\d{2})?\s*(?:E:|\s*:)\s*(\d+)kcal|E:\s*(\d+)kcal)(?:\s*B:\s*([\d,]+)g)?(?:\s*T:\s*([\d,]+)g)?(?:\s*W:\s*([\d,]+)g)?(?:\s*F:\s*([\d,]+)g)?$");
+                var simpleMealHeaderMatch = Regex.Match(parts[i], @"^(ŚNIADANIE|DRUGIE ŚNIADANIE|PRZEKĄSKA|OBIAD|KOLACJA)(?:\s+\d{2}:\d{2})?$");
+
+                if (mealHeaderMatch.Success || simpleMealHeaderMatch.Success)
                 {
-                    string mealType = mealHeaderMatch.Groups[1].Value.Trim();
-                    double calories = double.Parse(mealHeaderMatch.Groups[2].Value);
-                    double protein = double.Parse(mealHeaderMatch.Groups[3].Value);
-                    double fat = double.Parse(mealHeaderMatch.Groups[4].Value);
-                    double carbs = double.Parse(mealHeaderMatch.Groups[5].Value);
-                    double fiber = double.Parse(mealHeaderMatch.Groups[6].Value);
+                    string mealType;
+                    double calories = 0, protein = 0, fat = 0, carbs = 0, fiber = 0;
+
+                    if (mealHeaderMatch.Success)
+                    {
+                        mealType = mealHeaderMatch.Groups[1].Value.Trim();
+                        // If first format didn't match (groups 2), use second format (group 3)
+                        string caloriesStr = mealHeaderMatch.Groups[2].Success ? mealHeaderMatch.Groups[2].Value : mealHeaderMatch.Groups[3].Value;
+                        calories = double.Parse(caloriesStr);
+                        
+                        if (mealHeaderMatch.Groups[4].Success)
+                            double.TryParse(mealHeaderMatch.Groups[4].Value.Replace(",", "."), out protein);
+                        if (mealHeaderMatch.Groups[5].Success)
+                            double.TryParse(mealHeaderMatch.Groups[5].Value.Replace(",", "."), out fat);
+                        if (mealHeaderMatch.Groups[6].Success)
+                            double.TryParse(mealHeaderMatch.Groups[6].Value.Replace(",", "."), out carbs);
+                        if (mealHeaderMatch.Groups[7].Success)
+                            double.TryParse(mealHeaderMatch.Groups[7].Value.Replace(",", "."), out fiber);
+                    }
+                    else
+                    {
+                        mealType = simpleMealHeaderMatch.Groups[1].Value.Trim();
+                    }
                     
                     // Check if we have enough parts for at least a name and some instructions
                     if (i + 2 >= parts.Length) continue;
@@ -301,8 +326,9 @@ namespace Infrastructure.PDF
         
         private bool IsNewMealHeader(string text)
         {
-            // Check if the text is a new meal header
-            return Regex.IsMatch(text, @"^.+E: \d+kcalB:");
+            // Check if the text is a new meal header - handle both formats
+            return Regex.IsMatch(text, @"^(?:.+?(?:\s+\d{2}:\d{2})?\s*(?:E:|\s*:)\s*\d+kcal|E:\s*\d+kcal)") || 
+                   Regex.IsMatch(text, @"^(ŚNIADANIE|DRUGIE ŚNIADANIE|PRZEKĄSKA|OBIAD|KOLACJA)(?:\s+\d{2}:\d{2})?$");
         }
     }
 }
