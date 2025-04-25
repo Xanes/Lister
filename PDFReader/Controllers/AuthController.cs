@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using PDFReader.DTOs;
 
 namespace PDFReader.Controllers
 {
@@ -24,7 +25,7 @@ namespace PDFReader.Controllers
             }
 
             var result = await _deviceAuthService.AuthenticateWithPasswordAsync(
-                request.Password, 
+                request.Password,
                 request.DeviceMac);
 
             if (result)
@@ -40,12 +41,12 @@ namespace PDFReader.Controllers
         {
             // In a real app you would check if the user has permission to remove devices
             var result = await _deviceAuthService.RemoveTrustedDeviceAsync(macAddress);
-            
+
             if (result)
             {
                 return Ok(new { message = "Device removed" });
             }
-            
+
             return NotFound(new { message = "Device not found" });
         }
 
@@ -58,14 +59,8 @@ namespace PDFReader.Controllers
             }
 
             var isTrusted = await _deviceAuthService.IsDeviceTrustedAsync(macAddress);
-            
+
             return Ok(new { trusted = isTrusted });
         }
     }
-
-    public class LoginRequest
-    {
-        public string Password { get; set; }
-        public string DeviceMac { get; set; }
-    }
-} 
+}

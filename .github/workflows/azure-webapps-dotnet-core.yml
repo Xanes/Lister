@@ -63,3 +63,32 @@ jobs:
         with:
           name: .net-app
           path: ${{env.DOTNET_ROOT}}/myapp
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build # Depends on the build job
+
+    steps:
+      - uses: actions/checkout@v3 # Checkout code again for test job
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v2
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Set up dependency caching for faster builds
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # Build is technically needed before test unless using --no-build and relying on cache?
+      # Let's include build for safety, or restore if cache hit is reliable.
+      # For simplicity and robustness, let's build again here.
+      - name: Build solution for tests
+        run: dotnet build Lister.sln --configuration Release
+
+      - name: Run tests
+        run: dotnet test Lister.sln --configuration Release --no-build # Use --no-build as we just built
