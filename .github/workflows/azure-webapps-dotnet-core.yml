@@ -90,5 +90,12 @@ jobs:
       - name: Build solution for tests
         run: dotnet build Lister.sln --configuration Release
 
-      - name: Run tests
-        run: dotnet test Lister.sln --configuration Release --no-build # Use --no-build as we just built
+      - name: Run tests with coverage
+        run: dotnet test Lister.sln --configuration Release --no-build --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: ./coverage/**/coverage.cobertura.xml
+          retention-days: 1 # Optional: Adjust how long to keep the artifact
