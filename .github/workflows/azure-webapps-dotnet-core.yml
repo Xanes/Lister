@@ -99,3 +99,11 @@ jobs:
           name: code-coverage-report
           path: ./coverage/**/coverage.cobertura.xml
           retention-days: 1 # Optional: Adjust how long to keep the artifact
+
+      - name: cobertura-report
+        uses: 5monkeys/cobertura-action@v14
+        with:
+          path: ./coverage/**/coverage.cobertura.xml # Path to the Cobertura report
+          # Optional: Specify minimum coverage thresholds
+          # minimum_coverage: 80
+          # fail_below_threshold: 'false' # Set to 'true' to fail the job if below threshold
