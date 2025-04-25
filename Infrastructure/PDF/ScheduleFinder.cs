@@ -1,4 +1,5 @@
 ﻿using Domain.Enums;
+using Domain.Interfaces;
 using Domain.Models;
 using Infrastructure.Settings;
 using Syncfusion.Pdf.Parsing;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.PDF
 {
-    public class ScheduleFinder
+    public class ScheduleFinder : IScheduleFinder<PdfLoadedDocument>
     {
         private readonly ISettings _settings;
         private readonly Regex _mealTypePattern;

@@ -1,18 +1,14 @@
-﻿using Domain.Models;
-using Syncfusion.Pdf.Parsing;
+﻿using Domain.Interfaces;
+using Domain.Models;
+using Infrastructure.Settings;
 using Syncfusion.Pdf;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Syncfusion.Pdf.Parsing;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Infrastructure.Settings;
-using Domain.Enums;
 
 namespace Infrastructure.PDF
 {
-    public class ReceipeFinder
+    public class ReceipeFinder : IReceipeFinder<PdfLoadedDocument>
     {
         private readonly ISettings _settings;
         private readonly string[] _dayNames = { "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota", "Niedziela" };
@@ -42,32 +38,32 @@ namespace Infrastructure.PDF
                 }
             }
 
-            string receipesText = sb.Replace("ok.","około").Replace("min.","min").Replace("np.","na przykład").ToString();
+            string receipesText = sb.Replace("ok.", "około").Replace("min.", "min").Replace("np.", "na przykład").ToString();
             return ParseReceipes(receipesText);
         }
 
         private List<Recipe> ParseReceipes(string receipesText)
         {
             var recipes = new List<Recipe>();
-            
+
             // Remove "ROZPISKA DNI" parts
             receipesText = receipesText.Replace("ROZPISKA DNI", "");
-            
+
             // Remove standalone dates (not part of meal headers)
             receipesText = Regex.Replace(receipesText, @"\|\s*\d{2}\.\d{2}\.\d{4}\s*\|", "|");
-            
+
             // Remove day names
             foreach (var day in _dayNames)
             {
                 receipesText = receipesText.Replace($" | {day} ", " | ");
             }
-            
+
             // Split the text by the delimiter
             var parts = receipesText.Split(new[] { " | " }, StringSplitOptions.RemoveEmptyEntries)
                                   .Where(p => !string.IsNullOrWhiteSpace(p))
                                   .Select(p => p.Trim())
                                   .ToArray();
-            
+
             // Process each part
             for (int i = 0; i < parts.Length; i++)
             {
@@ -86,7 +82,7 @@ namespace Infrastructure.PDF
                         // If first format didn't match (groups 2), use second format (group 3)
                         string caloriesStr = mealHeaderMatch.Groups[2].Success ? mealHeaderMatch.Groups[2].Value : mealHeaderMatch.Groups[3].Value;
                         calories = double.Parse(caloriesStr);
-                        
+
                         if (mealHeaderMatch.Groups[4].Success)
                             double.TryParse(mealHeaderMatch.Groups[4].Value.Replace(",", "."), out protein);
                         if (mealHeaderMatch.Groups[5].Success)
@@ -100,13 +96,13 @@ namespace Infrastructure.PDF
                     {
                         mealType = simpleMealHeaderMatch.Groups[1].Value.Trim();
                     }
-                    
+
                     // Check if we have enough parts for at least a name and some instructions
                     if (i + 2 >= parts.Length) continue;
-                    
+
                     // Next part is the recipe name
                     string recipeName = parts[i + 1].Trim();
-                    
+
                     // Check if there are instructions (looking for sentences with periods)
                     bool hasInstructions = false;
                     for (int checkIdx = i + 2; checkIdx < parts.Length; checkIdx++)
@@ -117,10 +113,10 @@ namespace Infrastructure.PDF
                             break;
                         }
                     }
-                    
+
                     // Skip recipes without instructions
                     if (!hasInstructions) continue;
-                    
+
                     // Create recipe
                     var recipe = new Recipe
                     {
@@ -131,32 +127,32 @@ namespace Infrastructure.PDF
                         Carbohydrates = carbs,
                         Fiber = fiber
                     };
-                    
+
                     // Extract instructions and ingredients
                     List<string> instructions = new List<string>();
                     List<RecipeIngredient> ingredients = new List<RecipeIngredient>();
-                    
+
                     // Current position in the parts array
                     int currentIdx = i + 2;
                     StringBuilder instructionBuffer = new StringBuilder();
-                    
+
                     // Process parts until we hit a new meal header
                     while (currentIdx < parts.Length && !IsNewMealHeader(parts[currentIdx]))
                     {
                         string currentPart = parts[currentIdx].Trim();
                         currentIdx++;
-                        
+
                         // Skip parts that are just numbers with dots (like "1.")
                         if (IsJustNumberWithDot(currentPart))
                         {
                             continue;
                         }
-                        
+
                         // Check if it's a potential ingredient
-                        if (!currentPart.Contains(".") && 
-                            (currentPart.Contains("x") || 
-                             (currentIdx < parts.Length && 
-                              !IsNewMealHeader(parts[currentIdx]) && 
+                        if (!currentPart.Contains(".") &&
+                            (currentPart.Contains("x") ||
+                             (currentIdx < parts.Length &&
+                              !IsNewMealHeader(parts[currentIdx]) &&
                               parts[currentIdx].Contains("x"))))
                         {
                             // Buffer to collect ingredient parts
@@ -164,20 +160,20 @@ namespace Infrastructure.PDF
                             {
                                 currentPart
                             };
-                            
+
                             // Collect parts until we have a complete ingredient (ends with weight unit)
-                            while (currentIdx < parts.Length && 
-                                  !IsNewMealHeader(parts[currentIdx]) && 
+                            while (currentIdx < parts.Length &&
+                                  !IsNewMealHeader(parts[currentIdx]) &&
                                   !ingredientBuffer.Last().EndsWith("g") &&
                                   !parts[currentIdx].Contains("."))
                             {
                                 ingredientBuffer.Add(parts[currentIdx].Trim());
                                 currentIdx++;
                             }
-                            
+
                             // Join the buffer parts
                             string combinedIngredient = string.Join(" ", ingredientBuffer);
-                            
+
                             // Process the combined ingredient text
                             if (IsIngredientText(combinedIngredient))
                             {
@@ -196,7 +192,7 @@ namespace Infrastructure.PDF
                             if (currentPart.Contains("."))
                             {
                                 // This part contains complete sentences
-                                
+
                                 // If we have pending instruction text, combine it with current part
                                 if (instructionBuffer.Length > 0)
                                 {
@@ -210,7 +206,7 @@ namespace Infrastructure.PDF
                                     // Process this part directly
                                     ProcessInstructions(currentPart, instructions);
                                 }
-                                
+
                                 // Check if the part ends with an incomplete sentence
                                 int lastDotIndex = currentPart.LastIndexOf('.');
                                 if (lastDotIndex < currentPart.Length - 1)
@@ -234,7 +230,7 @@ namespace Infrastructure.PDF
                             }
                         }
                     }
-                    
+
                     // Process any remaining instruction text
                     if (instructionBuffer.Length > 0)
                     {
@@ -244,7 +240,7 @@ namespace Infrastructure.PDF
                             instructions.Add(remainingInstruction + ".");
                         }
                     }
-                    
+
                     // Add instructions to recipe
                     for (int instrIdx = 0; instrIdx < instructions.Count; instrIdx++)
                     {
@@ -255,23 +251,23 @@ namespace Infrastructure.PDF
                             Instruction = instructions[instrIdx].Trim()
                         });
                     }
-                    
+
                     // Add ingredients to recipe
                     foreach (var ingredient in ingredients)
                     {
                         recipe.Ingredients.Add(ingredient);
                     }
-                    
+
                     recipes.Add(recipe);
-                    
+
                     // Update i to continue from where we left off
                     i = currentIdx - 1;
                 }
             }
-            
+
             return recipes.DistinctBy(r => r.Name).ToList();
         }
-        
+
         private void ProcessIngredient(string text, Recipe recipe, List<RecipeIngredient> ingredients)
         {
             // Parse ingredient using detailed pattern
@@ -285,7 +281,7 @@ namespace Infrastructure.PDF
                 string quantityUnit = ingredientMatch.Groups[3].Value.Trim();
                 double weight = double.Parse(ingredientMatch.Groups[4].Value);
                 string weightUnit = ingredientMatch.Groups[5].Value.Trim();
-                
+
                 ingredients.Add(new RecipeIngredient
                 {
                     RecipeId = recipe.Id,
@@ -297,7 +293,7 @@ namespace Infrastructure.PDF
                 });
             }
         }
-        
+
         private void ProcessInstructions(string text, List<string> instructions)
         {
             // It's an instruction - split by periods
@@ -306,28 +302,28 @@ namespace Infrastructure.PDF
             {
                 string sentence = sentenceRaw.Trim();
                 if (string.IsNullOrEmpty(sentence)) continue;
-                
+
                 instructions.Add(sentence + ".");
                 return;
             }
         }
-        
+
         private bool IsJustNumberWithDot(string text)
         {
             // Check if the text is just a number followed by a dot (e.g., "1." or "2.")
             return Regex.IsMatch(text.Trim(), @"^\d+\.$");
         }
-        
+
         private bool IsIngredientText(string text)
         {
             // Check if the text matches an ingredient pattern (contains "x" and ends with a weight)
             return Regex.IsMatch(text, @"\d+(?:,\d+)?\s+x\s+.+\d+\w+$");
         }
-        
+
         private bool IsNewMealHeader(string text)
         {
             // Check if the text is a new meal header - handle both formats
-            return Regex.IsMatch(text, @"^(?:.+?(?:\s+\d{2}:\d{2})?\s*(?:E:|\s*:)\s*\d+kcal|E:\s*\d+kcal)") || 
+            return Regex.IsMatch(text, @"^(?:.+?(?:\s+\d{2}:\d{2})?\s*(?:E:|\s*:)\s*\d+kcal|E:\s*\d+kcal)") ||
                    Regex.IsMatch(text, @"^(ŚNIADANIE|DRUGIE ŚNIADANIE|PRZEKĄSKA|OBIAD|KOLACJA)(?:\s+\d{2}:\d{2})?$");
         }
     }

@@ -3,10 +3,11 @@ using Infrastructure.Settings;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Parsing;
 using System.Text.RegularExpressions;
+using Domain.Interfaces;
 
 namespace Infrastructure.PDF
 {
-    public class PDFProductsFinder
+    public class PDFProductsFinder : IPDFProductsFinder<PdfLoadedDocument>
     {
         private readonly ISettings _settings;
 

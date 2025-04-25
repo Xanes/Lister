@@ -1,13 +1,9 @@
-﻿using Syncfusion.Pdf.Parsing;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Domain.Interfaces;
+using Syncfusion.Pdf.Parsing;
 
 namespace Infrastructure.PDF
 {
-    public class PDFDocumentReader
+    public class PDFDocumentReader : IPDFDocumentReader<PdfLoadedDocument>
     {
         public PdfLoadedDocument Read(Stream fs)
         {

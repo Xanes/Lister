@@ -1,4 +1,5 @@
-﻿using Domain.Models;
+﻿using Domain.Interfaces;
+using Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Infrastructure.PDF
 {
-    public class ShoppingListMerger
+    public class ShoppingListMerger : IShoppingListMerger
     {
         public List<ProductCategoryGroup> MergeShoppingLists(List<ProductCategoryGroup> shoppingListA, List<ProductCategoryGroup> shoppingListB)
         {
