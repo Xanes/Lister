@@ -4,6 +4,7 @@ using Infrastructure.Database;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace IntegrationTests
@@ -29,7 +30,7 @@ namespace IntegrationTests
                 // Add DbContext using the consistent, unique database name for this factory instance
                 services.AddDbContext<ListerDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase(_dbName);
+                    options.UseInMemoryDatabase(_dbName).ConfigureWarnings(x => x.Ignore(InMemoryEventId.TransactionIgnoredWarning));
                 });
 
                 // Ensure the database is created
