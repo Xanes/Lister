@@ -18,6 +18,7 @@ namespace IntegrationTests
         private readonly CustomWebApplicationFactory<Program> _factory;
         private readonly IServiceScopeFactory _scopeFactory;
         private Func<Task> _resetDatabase;
+        private readonly string _testDataBasePath;
 
         public PdfControllerTests(CustomWebApplicationFactory<Program> factory)
         {
@@ -25,6 +26,8 @@ namespace IntegrationTests
             _client = factory.CreateClient();
             _resetDatabase = InitializeDatabaseAsync;
             _scopeFactory = _factory.Services.GetRequiredService<IServiceScopeFactory>();
+            var assemblyPath = Path.GetDirectoryName(typeof(PdfControllerTests).Assembly.Location);
+            _testDataBasePath = Path.Combine(assemblyPath ?? "", "TestDataFiles");
         }
 
         // --- Test Data --- 
@@ -87,7 +90,7 @@ namespace IntegrationTests
             await EnsureDeviceIsTrustedAsync(deviceMac);
 
             // Adjust the path to be relative to the output directory
-            var testDataFolder = Path.Combine("TestDataFiles", $"TestData_{folderIndex}"); 
+            var testDataFolder = Path.Combine(_testDataBasePath, $"TestData_{folderIndex}");
             var pdfPath1 = Path.Combine(testDataFolder, "1.pdf");
             var pdfPath2 = Path.Combine(testDataFolder, "2.pdf");
 
