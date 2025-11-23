@@ -55,6 +55,18 @@
     <None Update="TestDataFiles\TestData_4\2.pdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="VerifiedSnapshots\PdfControllerTests.ReadPdf_ReturnsVerifiedResult_folderIndex=1.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="VerifiedSnapshots\PdfControllerTests.ReadPdf_ReturnsVerifiedResult_folderIndex=2.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="VerifiedSnapshots\PdfControllerTests.ReadPdf_ReturnsVerifiedResult_folderIndex=3.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="VerifiedSnapshots\PdfControllerTests.ReadPdf_ReturnsVerifiedResult_folderIndex=4.verified.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
