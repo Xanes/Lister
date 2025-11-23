@@ -28,7 +28,6 @@ public static class MealScheduleExtensions
                 MealTypes.DrugieSniadanie => "Drugie Śniadanie",
                 MealTypes.Obiad => "Obiad",
                 MealTypes.Kolacja => "Kolacja",
-                MealTypes.Przekaska => "Przekąska",
                 _ => string.Empty
             },
             MealName = schedule.MealName,

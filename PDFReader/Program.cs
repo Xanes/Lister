@@ -1,8 +1,6 @@
 using Domain.Interfaces;
 using Domain.Models;
 using Infrastructure.Database;
-using Infrastructure.OpenAI.Interfaces;
-using Infrastructure.OpenAI.Settings;
 using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Infrastructure.Settings;
@@ -37,10 +35,6 @@ public class Program
         builder.Services.AddTransient<IReadOnlyRepository<ProductsDescriptionInfo>, ProductsDescriptionInfoRepository>();
         builder.Services.AddTransient<IAdditionalProductRepository, AdditionalProductRepository>();
         builder.Services.AddScoped<IDeviceAuthService, DeviceAuthService>();
-        builder.Services.AddTransient<IOpenAIRepository, OpenAIRepository>();
-        builder.Services.AddTransient<IOpenAIService, OpenAiService>();
-        builder.Services.Configure<OpenAiSettings>(builder.Configuration.GetSection("OpenAI"));
-        builder.Services.AddHttpClient();
 
         var app = builder.Build();
         app.MapGet("/", () => StatusCodes.Status200OK);

@@ -70,7 +70,7 @@ namespace Infrastructure.Repositories
                         }
                     }
                     
-                    await _context.MealSchedules.AddRangeAsync(mealSchedules.Where(m => m.RecipeId != 0).ToList());
+                    await _context.MealSchedules.AddRangeAsync(mealSchedules);
                     await _context.SaveChangesAsync();
                 }
 

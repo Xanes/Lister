@@ -8,6 +8,6 @@ namespace Domain.Interfaces
         /// </summary>
         /// <param name="loadedDocument">The loaded PDF document.</param>
         /// <returns>A list of product category groups found in the document.</returns>
-        List<List<ProductCategoryGroup>> FindProducts(T[] loadedDocument);
+        List<ProductCategoryGroup> FindProducts(T loadedDocument);
     }
 }
