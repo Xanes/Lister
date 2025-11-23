@@ -7,6 +7,7 @@ using Domain.Exceptions;
 using PDFReader.DTOs;
 using PDFReader.Extensions;
 using Domain.Extensions;
+using Infrastructure.OpenAI.Interfaces;
 
 namespace PDFReader.Controllers
 {
@@ -18,34 +19,59 @@ namespace PDFReader.Controllers
         private readonly IDietRepository _dietRepository;
         private readonly IReadOnlyRepository<ProductsDescriptionInfo> _productsDescriptionInfoRepository;
         private readonly IAdditionalProductRepository _additionalProductRepository;
+        private readonly IOpenAIRepository _openAIRepository;
 
         public PdfController(
             ISettings settings, 
             IDietRepository dietRepository,
             IReadOnlyRepository<ProductsDescriptionInfo> productsDescriptionInfoRepository,
-            IAdditionalProductRepository additionalProductRepository) 
+            IAdditionalProductRepository additionalProductRepository, 
+            IOpenAIRepository openAIRepository) 
         {
             _settings = settings;
             _dietRepository = dietRepository;
             _productsDescriptionInfoRepository = productsDescriptionInfoRepository;
             _additionalProductRepository = additionalProductRepository;
+            _openAIRepository = openAIRepository;
         }
 
         [HttpPost]
         [Route(nameof(ReadPdf))]
         [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
         [DisableRequestSizeLimit]
-        public async Task<IActionResult> ReadPdf(string name, string description, List<IFormFile> fileList)
+        public async Task<IActionResult> ReadPdf(string name, string description, List<IFormFile> fileList, bool useAI = false)
         {
             PDFProductsFinder finder = new PDFProductsFinder(_settings);
             ScheduleFinder scheduleFinder = new ScheduleFinder(_settings);
             PDFDocumentReader reader = new PDFDocumentReader();
             ReceipeFinder receipeFinder = new ReceipeFinder(_settings);
+         
 
             var documents = fileList.Select(f => reader.Read(f.OpenReadStream())).ToList();
-            var shoppingLists = documents.Select(file => finder.FindProducts(file)).ToList();
-            var mealScheduleItems = documents.Select(d => scheduleFinder.GetMealsSchedule(d, 0)).ToList();
-            var recipes = documents.SelectMany(d => receipeFinder.GetReceipes(d)).ToList().MergeDuplicateRecipes();
+            List<List<ProductCategoryGroup>> shoppingLists;
+            List<List<MealSchedule>> mealScheduleItems;
+            List<List<Recipe>> recipes = new List<List<Recipe>>();
+            if (useAI)
+            {
+                PDFDietParserAsync pDFDietParserAsync = new PDFDietParserAsync(_settings, _openAIRepository);
+
+
+                var diet = await pDFDietParserAsync.ParseDietAsync(documents.ToArray());
+
+
+                shoppingLists = diet.Select(d => d.ShoppingList).ToList();
+                mealScheduleItems = diet.Select(d => d.MealSchedules).ToList();
+                recipes = diet.Select(d => d.Recipes).ToList();
+            }
+            else
+            {
+                shoppingLists = finder.FindProducts(documents.ToArray());
+                mealScheduleItems = documents.Select(d => scheduleFinder.GetMealsSchedule(d, 0)).ToList();
+                recipes = documents.Select(receipeFinder.GetReceipes).ToList();
+            }
+
+
+            List<Recipe> mergedReceipes = recipes.SelectMany(r => r).ToList().MergeDuplicateRecipes();
 
             ShoppingListMerger merger = new ShoppingListMerger();
 
@@ -64,7 +90,7 @@ namespace PDFReader.Controllers
                 CreatedAt= DateTime.UtcNow
             };
 
-            var result = await _dietRepository.CreateAsync(list, mealScheduleItems.SelectMany(t => t).RemoveDuplicates(), recipes);
+            var result = await _dietRepository.CreateAsync(list, mealScheduleItems.SelectMany(t => t).RemoveDuplicates(), mergedReceipes);
 
             return Ok(result);
         }
