@@ -24,8 +24,9 @@ namespace Infrastructure.PDF
             bool addPages = false;
             for (int i = 0; i < pdfLoadedDocument.Pages.Count; i++)
             {
-                pdfLoadedDocument.Pages[i].ExtractText(out TextLineCollection textlineCollection);
-                var text = string.Join(" | ", textlineCollection.TextLine.Select(l => l.Text));
+                string extractedText = pdfLoadedDocument.Pages[i].ExtractText(true);
+                var textLines = extractedText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                var text = string.Join(" | ", textLines);
 
                 if (text.ToLower().Contains(_settings.ShoppingListFooter.ToLower()))
                 {

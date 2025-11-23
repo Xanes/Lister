@@ -26,39 +26,38 @@ namespace Infrastructure.PDF
             List<List<ProductCategoryGroup>> listToReturn = new List<List<ProductCategoryGroup>>(); 
             foreach (var loadedDocument in loadedDocuments)
             {
-                Dictionary<string, List<List<TextLine>>> gruppedLinesWithCategory = new Dictionary<string, List<List<TextLine>>>();
+                Dictionary<string, List<List<string>>> gruppedLinesWithCategory = new Dictionary<string, List<List<string>>>();
 
                 string currentcategory = "";
 
                 var pagesToProcess = GetShoppingListPages(loadedDocument);
                 for (int i = 0; i < pagesToProcess.Count; i++)
                 {
-                    pagesToProcess[i].ExtractText(out TextLineCollection textlineCollection);
-                    List<TextLine> line = new List<TextLine>();
-                    var textlines = textlineCollection.TextLine.Select(t =>
+                    string extractedText = pagesToProcess[i].ExtractText(true);
+                    var textLinesArray = extractedText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                    
+                    List<string> line = new List<string>();
+                    var textlines = textLinesArray.Select(t => t.Trim()).ToList();
+                    
+                    foreach (var textline in textlines)
                     {
-                        t.Text = t.Text.Trim();
-                        return t;
-                    }).ToList();
-                    foreach (var textline in textlineCollection.TextLine)
-                    {
-                        if (_settings.IgnoreWords.Any(i => textline.Text.ToLower().Contains(i.ToLower())))
+                        if (_settings.IgnoreWords.Any(i => textline.ToLower().Contains(i.ToLower())))
                         {
                             continue;
                         }
 
-                        if (_settings.Categories.Contains(textline.Text))
+                        if (_settings.Categories.Contains(textline))
                         {
-                            currentcategory = textline.Text;
-                            gruppedLinesWithCategory[currentcategory] = new List<List<TextLine>>();
+                            currentcategory = textline;
+                            gruppedLinesWithCategory[currentcategory] = new List<List<string>>();
                             continue;
                         }
 
-                        if (textline.Text.EndsWith("g"))
+                        if (textline.EndsWith("g"))
                         {
                             line.Add(textline);
                             gruppedLinesWithCategory[currentcategory].Add(line);
-                            line = new List<TextLine>();
+                            line = new List<string>();
                             continue;
                         }
 
@@ -77,7 +76,7 @@ namespace Infrastructure.PDF
 
                     foreach (var item2 in item.Value)
                     {
-                        string lineText = item2.Select(x => x.Text).Aggregate((x, y) => x + " " + y);
+                        string lineText = item2.Aggregate((x, y) => x + " " + y);
                         lineText = lineText.Replace(",", "");
                         lineText = Regex.Replace(lineText, @"\u00A0", " ");
                         var name = ExtractProductName(lineText);
@@ -117,11 +116,11 @@ namespace Infrastructure.PDF
 
             if (matchX.Success)
             {
-                return Regex.Replace(input.Substring(0, matchX.Index).Trim(), @"(?<=[a-zA-Z])\d+|\d+(?=[a-zA-Z])", "");
+                return Regex.Replace(input.Substring(0, matchX.Index).Trim(), @"(?<=[a-zA-Z])\d+|\d+(?=[a-zA-Z])|\s+\d+$", "");
             }
             else if (matchG.Success)
             {
-                return Regex.Replace(input.Substring(0, matchG.Index).Trim(), @"(?<=[a-zA-Z])\d+|\d+(?=[a-zA-Z])", "");
+                return Regex.Replace(input.Substring(0, matchG.Index).Trim(), @"(?<=[a-zA-Z])\d+|\d+(?=[a-zA-Z])|\s+\d+$", "");
             }
             else
             {
@@ -136,8 +135,13 @@ namespace Infrastructure.PDF
 
             for (int i = 0; i < pdfLoadedDocument.Pages.Count; i++)
             {
-                pdfLoadedDocument.Pages[i].ExtractText(out TextLineCollection textlineCollection);
-                var text = string.Join(string.Empty, textlineCollection.TextLine.Select(l => l.Text)).Trim().Trim().ToLower();
+                string extractedText = pdfLoadedDocument.Pages[i].ExtractText(true);
+                // Join with empty string to match original behavior: string.Join(string.Empty, textlineCollection.TextLine.Select(l => l.Text))
+                // But wait, original code joined with empty string? 
+                // "var text = string.Join(string.Empty, textlineCollection.TextLine.Select(l => l.Text)).Trim().Trim().ToLower();"
+                // Yes.
+                var textLinesArray = extractedText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+                var text = string.Join(string.Empty, textLinesArray).Trim().Trim().ToLower();
 
                 if (text.Contains(_settings.ShoppingListFooter.Trim().ToLower()))
                 {
