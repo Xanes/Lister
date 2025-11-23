@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v3
@@ -65,7 +65,7 @@ jobs:
           path: ${{env.DOTNET_ROOT}}/myapp
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build # Depends on the build job
     permissions: # Add permissions for this job
       checks: write # Allow writing checks status
