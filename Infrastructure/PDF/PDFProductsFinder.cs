@@ -5,6 +5,7 @@ using Syncfusion.Pdf.Parsing;
 using System.Text.RegularExpressions;
 using Domain.Interfaces;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace Infrastructure.PDF
 {
@@ -89,9 +90,9 @@ namespace Infrastructure.PDF
                             Product product = new Product()
                             {
                                 Name = name,
-                                Quantity = quantityMatch.Success ? double.Parse(quantityMatch.Value.TrimEnd('x').Trim().Replace(".", ",")) : null,
+                                Quantity = quantityMatch.Success ? double.Parse(quantityMatch.Value.TrimEnd('x').Trim().Replace(",", ".").Replace(" ", ""), CultureInfo.InvariantCulture) : null,
                                 QuantityUnit = quantityUnitMatch.Success ? quantityUnitMatch.Value.Substring(1).Trim() : null,
-                                Weight = weightMatch.Success ? double.Parse(weightMatch.Value.TrimEnd('g').Trim().Replace(".", ",")) : null,
+                                Weight = weightMatch.Success ? double.Parse(weightMatch.Value.TrimEnd('g').Trim().Replace(",", ".").Replace(" ", ""), CultureInfo.InvariantCulture) : null,
                                 WeightUnit = "g"
                             };
                             productCategoryGroup.Products.Add(product);

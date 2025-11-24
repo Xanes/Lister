@@ -5,6 +5,7 @@ using Syncfusion.Pdf;
 using Syncfusion.Pdf.Parsing;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 namespace Infrastructure.PDF
 {
@@ -82,16 +83,16 @@ namespace Infrastructure.PDF
                         mealType = mealHeaderMatch.Groups[1].Value.Trim();
                         // If first format didn't match (groups 2), use second format (group 3)
                         string caloriesStr = mealHeaderMatch.Groups[2].Success ? mealHeaderMatch.Groups[2].Value : mealHeaderMatch.Groups[3].Value;
-                        calories = double.Parse(caloriesStr);
+                        calories = double.Parse(caloriesStr.Replace(" ", ""), CultureInfo.InvariantCulture);
 
                         if (mealHeaderMatch.Groups[4].Success)
-                            double.TryParse(mealHeaderMatch.Groups[4].Value.Replace(",", "."), out protein);
+                            double.TryParse(mealHeaderMatch.Groups[4].Value.Replace(",", ".").Replace(" ", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out protein);
                         if (mealHeaderMatch.Groups[5].Success)
-                            double.TryParse(mealHeaderMatch.Groups[5].Value.Replace(",", "."), out fat);
+                            double.TryParse(mealHeaderMatch.Groups[5].Value.Replace(",", ".").Replace(" ", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out fat);
                         if (mealHeaderMatch.Groups[6].Success)
-                            double.TryParse(mealHeaderMatch.Groups[6].Value.Replace(",", "."), out carbs);
+                            double.TryParse(mealHeaderMatch.Groups[6].Value.Replace(",", ".").Replace(" ", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out carbs);
                         if (mealHeaderMatch.Groups[7].Success)
-                            double.TryParse(mealHeaderMatch.Groups[7].Value.Replace(",", "."), out fiber);
+                            double.TryParse(mealHeaderMatch.Groups[7].Value.Replace(",", ".").Replace(" ", ""), NumberStyles.Any, CultureInfo.InvariantCulture, out fiber);
                     }
                     else
                     {
@@ -278,9 +279,9 @@ namespace Infrastructure.PDF
             {
                 string ingredientName = ingredientMatch.Groups[1].Value.Trim();
                 // Parse quantity directly
-                double quantity = double.Parse(ingredientMatch.Groups[2].Value);
+                double quantity = double.Parse(ingredientMatch.Groups[2].Value.Replace(",", ".").Replace(" ", ""), CultureInfo.InvariantCulture);
                 string quantityUnit = ingredientMatch.Groups[3].Value.Trim();
-                double weight = double.Parse(ingredientMatch.Groups[4].Value);
+                double weight = double.Parse(ingredientMatch.Groups[4].Value.Replace(" ", ""), CultureInfo.InvariantCulture);
                 string weightUnit = ingredientMatch.Groups[5].Value.Trim();
 
                 ingredients.Add(new RecipeIngredient
